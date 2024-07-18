@@ -47,7 +47,7 @@ fn test_hire_miner() {
     // Hiring a miner when you don't have enough gold is a noop.
     state
         .gold
-        .update(ResourceDiff::new(((MINER_COST - 1) as i128) * 1000));
+        .update(ResourceDiff::new(((MINER_GOLD_COST - 1) as i128) * 1000));
     let expected_state = state.clone();
     state.hire_miner();
     assert_eq!(state, expected_state);
