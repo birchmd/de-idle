@@ -5,6 +5,7 @@ use {
 
 pub mod actor;
 pub mod plot;
+pub mod tabs;
 
 pub fn create_button<F: FnMut() + 'static>(
     document: &Document,

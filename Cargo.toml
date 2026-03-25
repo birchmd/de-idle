@@ -18,6 +18,7 @@ wasm-bindgen-futures = "0.4"
 [dependencies.web-sys]
 version = "0.3"
 features = [
+  "CssStyleDeclaration",
   "Document",
   "Element",
   "HtmlCanvasElement",

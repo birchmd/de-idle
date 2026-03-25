@@ -1,7 +1,10 @@
 use {
-    crate::{game_state::GameState, ui::plot},
+    crate::{
+        game_state::GameState,
+        ui::{plot, tabs::TabsBuilder},
+    },
     futures_channel::mpsc,
-    wasm_bindgen::JsValue,
+    wasm_bindgen::{JsCast, JsValue},
     web_sys::{Document, HtmlElement, Node},
 };
 
@@ -33,11 +36,11 @@ pub struct Actor {
 impl Actor {
     pub fn create(
         document: &Document,
-        body: &HtmlElement,
+        tabs: &mut TabsBuilder,
         plot_tx: mpsc::UnboundedSender<plot::Msg>,
     ) -> Result<(Self, mpsc::UnboundedSender<Msg>), JsValue> {
         let resources = document.create_element("div")?;
-        resources.set_class_name("horizontal-row");
+        resources.set_class_name("tabcontent");
 
         let labels = [
             "Wood",
@@ -54,13 +57,12 @@ impl Actor {
         let mut nodes = Vec::with_capacity(labels.len());
         for name in labels {
             let cell = document.create_element("div")?;
+            let cell: HtmlElement = cell.unchecked_into();
+            cell.style().set_property("display", "block")?;
 
             let label = document.create_element("p")?;
             label.set_text_content(Some(name));
             cell.append_child(&label)?;
-
-            let br = document.create_element("br")?;
-            cell.append_child(&br)?;
 
             let amount = document.create_element("p")?;
             amount.set_text_content(Some("0"));
@@ -70,7 +72,7 @@ impl Actor {
             nodes.push(amount.into());
         }
 
-        body.append_child(&resources)?;
+        tabs.with("Resources".into(), resources.unchecked_into())?;
 
         let (tx, rx) = mpsc::unbounded();
         let this = Self {
