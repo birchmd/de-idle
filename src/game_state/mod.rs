@@ -29,6 +29,8 @@ const MONSTER_RECRUITER_COST: u128 = 1;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct GameState {
+    // Time
+    time: u128,
     // Basic resources
     wood: Wood,
     gold: Gold,
@@ -45,6 +47,64 @@ pub struct GameState {
 }
 
 impl GameState {
+    pub fn view_time(&self) -> u128 {
+        self.time
+    }
+
+    pub fn view_resources(&self) -> [u128; 10] {
+        [
+            self.wood.raw_amount(),
+            self.gold.raw_amount(),
+            self.energy.raw_amount(),
+            self.miners.raw_amount(),
+            self.lumberjacks.raw_amount(),
+            self.recruiters.raw_amount(),
+            self.monsters.raw_amount(),
+            self.factories.raw_amount(),
+            self.furnaces.raw_amount(),
+            self.banks.raw_amount(),
+        ]
+    }
+
+    pub fn wood_f64(&self) -> f64 {
+        self.wood.to_f64()
+    }
+    pub fn gold_f64(&self) -> f64 {
+        self.gold.to_f64()
+    }
+
+    pub fn energy_f64(&self) -> f64 {
+        self.energy.to_f64()
+    }
+
+    pub fn miners_f64(&self) -> f64 {
+        self.miners.to_f64()
+    }
+
+    pub fn lumberjacks_f64(&self) -> f64 {
+        self.lumberjacks.to_f64()
+    }
+
+    pub fn recruiters_f64(&self) -> f64 {
+        self.recruiters.to_f64()
+    }
+
+    pub fn monsters_f64(&self) -> f64 {
+        self.monsters.to_f64()
+    }
+
+    pub fn factories_f64(&self) -> f64 {
+        self.factories.to_f64()
+    }
+
+    pub fn furnaces_f64(&self) -> f64 {
+        self.furnaces.to_f64()
+    }
+
+    pub fn banks_f64(&self) -> f64 {
+        self.banks.to_f64()
+    }
+
     /// Manually chop down a tree to get wood.
     pub fn chop(&mut self) {
         self.wood.increment();
@@ -128,6 +188,7 @@ impl GameState {
         let added_energy = diff(produced_energy, FactoryMarker::consume(&self.factories));
         let added_lumberjacks = diff(produced_lumberjacks, MonsterMarker::consume(&self.monsters));
 
+        self.time = self.time.saturating_add(10);
         self.wood.update(added_wood);
         self.gold.update(added_gold);
         self.energy.update(added_energy);

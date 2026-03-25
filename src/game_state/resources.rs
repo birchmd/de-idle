@@ -48,6 +48,10 @@ impl<Marker> Resource<Marker> {
         self.milli_amount
     }
 
+    pub const fn to_f64(&self) -> f64 {
+        (self.milli_amount as f64) / 1000.0
+    }
+
     pub fn update(&mut self, diff: ResourceDiff<Marker>) {
         self.milli_amount = if diff.milli_amount > 0 {
             self.milli_amount.saturating_add(diff.milli_amount as u128)

@@ -1,7 +1,7 @@
 use super::{
+    Converter,
     resources::{EnergyMarker, Gold, Resource, WoodMarker},
     workers::MinerMarker,
-    Converter,
 };
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]

@@ -1,6 +1,6 @@
 use super::{
-    resources::{Gold, GoldMarker, Resource, WoodMarker},
     Consumer, Converter, Producer,
+    resources::{Gold, GoldMarker, Resource, WoodMarker},
 };
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
