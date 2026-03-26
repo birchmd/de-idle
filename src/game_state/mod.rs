@@ -16,16 +16,16 @@ pub mod workers;
 #[cfg(test)]
 mod tests;
 
-const WOOD_PER_GOLD: u128 = 25;
-const MINER_GOLD_COST: u128 = 5;
-const BANK_GOLD_COST: u128 = 10;
-const BANK_WOOD_COST: u128 = 100;
-const FURNACE_GOLD_COST: u128 = 8;
-const FACTORY_GOLD_COST: u128 = 20;
-const FACTORY_WOOD_COST: u128 = 200;
-const RECRUITER_ENERGY_COST: u128 = 5;
-const MONSTER_ENERGY_COST: u128 = 10;
-const MONSTER_RECRUITER_COST: u128 = 1;
+pub const WOOD_PER_GOLD: u128 = 25;
+pub const MINER_GOLD_COST: u128 = 5;
+pub const BANK_GOLD_COST: u128 = 10;
+pub const BANK_WOOD_COST: u128 = 100;
+pub const FURNACE_GOLD_COST: u128 = 8;
+pub const FACTORY_GOLD_COST: u128 = 20;
+pub const FACTORY_WOOD_COST: u128 = 200;
+pub const RECRUITER_ENERGY_COST: u128 = 5;
+pub const MONSTER_ENERGY_COST: u128 = 10;
+pub const MONSTER_RECRUITER_COST: u128 = 1;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct GameState {
@@ -118,6 +118,10 @@ impl GameState {
         }
     }
 
+    pub fn remove_miner(&mut self) {
+        self.miners.decrement();
+    }
+
     pub fn hire_miner(&mut self) {
         if self.gold.raw_amount() >= MINER_GOLD_COST {
             self.gold.remove(Gold::new(MINER_GOLD_COST));
@@ -125,8 +129,16 @@ impl GameState {
         }
     }
 
+    pub fn remove_lumberjack(&mut self) {
+        self.lumberjacks.decrement();
+    }
+
     pub fn hire_lumberjack(&mut self) {
         self.lumberjacks.increment();
+    }
+
+    pub fn remove_recruiter(&mut self) {
+        self.recruiters.decrement();
     }
 
     pub fn hire_recruiter(&mut self) {
@@ -134,6 +146,10 @@ impl GameState {
             self.energy.remove(Energy::new(RECRUITER_ENERGY_COST));
             self.recruiters.increment();
         }
+    }
+
+    pub fn remove_monster(&mut self) {
+        self.monsters.decrement();
     }
 
     pub fn hire_monster(&mut self) {
@@ -147,6 +163,10 @@ impl GameState {
         }
     }
 
+    pub fn remove_bank(&mut self) {
+        self.banks.decrement();
+    }
+
     pub fn build_bank(&mut self) {
         if self.gold.raw_amount() >= BANK_GOLD_COST && self.wood.raw_amount() >= BANK_WOOD_COST {
             self.gold.remove(Gold::new(BANK_GOLD_COST));
@@ -155,11 +175,19 @@ impl GameState {
         }
     }
 
+    pub fn remove_furnace(&mut self) {
+        self.furnaces.decrement();
+    }
+
     pub fn build_furnace(&mut self) {
         if self.gold.raw_amount() >= FURNACE_GOLD_COST {
             self.gold.remove(Gold::new(FURNACE_GOLD_COST));
             self.furnaces.increment();
         }
+    }
+
+    pub fn remove_factory(&mut self) {
+        self.factories.decrement();
     }
 
     pub fn build_factory(&mut self) {

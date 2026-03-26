@@ -27,33 +27,14 @@ fn main() -> Result<(), JsValue> {
     tabs.with("Messages".into(), text.unchecked_into())?;
 
     let (plot_actor, plot_tx) = PlotActor::create(&document, &body)?;
-    let (actor, tx) = Actor::create(&document, &mut tabs, plot_tx.clone())?;
+    let (tx, rx) = mpsc::unbounded();
+    let resource_quantities = ui::dashboard::create_dashboard(&document, &mut tabs, tx.clone())?;
+    let actor = Actor::create(rx, resource_quantities, plot_tx.clone())?;
     plot_actor.spawn();
     actor.spawn();
 
     create_axis_selectors(&document, &body, plot_tx.clone(), tx.clone())?;
     create_pause_button(&document, &body, tx.clone())?;
-
-    let buttons = document.create_element("div")?;
-    buttons.set_class_name("tabcontent");
-    for (name, msg) in [
-        ("Chop", Msg::Chop),
-        ("Sell wood", Msg::Sell),
-        ("Hire miner", Msg::HireMiner),
-        ("Hire lumberjack", Msg::HireLumberjack),
-        ("Hire Recruiter", Msg::HireRecruiter),
-        ("Hire Monster", Msg::HireMonster),
-        ("Build factory", Msg::BuildFactory),
-        ("Build furnace", Msg::BuildFurnace),
-        ("Build bank", Msg::BuildBank),
-    ] {
-        let local_tx = tx.clone();
-        let button = ui::create_button(&document, name, move |_| {
-            local_tx.unbounded_send(msg).ok();
-        })?;
-        buttons.append_child(&button)?;
-    }
-    tabs.with("Actions".into(), buttons.unchecked_into())?;
 
     tabs.build(&body)?;
 

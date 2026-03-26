@@ -1,11 +1,8 @@
 use {
-    crate::{
-        game_state::GameState,
-        ui::{plot, tabs::TabsBuilder},
-    },
+    crate::{game_state::GameState, ui::plot},
     futures_channel::mpsc,
-    wasm_bindgen::{JsCast, JsValue},
-    web_sys::{Document, HtmlElement, Node},
+    wasm_bindgen::JsValue,
+    web_sys::Element,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -13,12 +10,19 @@ pub enum Msg {
     Update,
     Chop,
     Sell,
+    FireLumberjack,
     HireLumberjack,
+    FireMiner,
     HireMiner,
+    FireRecruiter,
     HireRecruiter,
+    FireMonster,
     HireMonster,
+    DemolishFactory,
     BuildFactory,
+    DemolishFurnace,
     BuildFurnace,
+    DemolishBank,
     BuildBank,
     SetXAxis(u8),
     SetYAxis(u8),
@@ -30,65 +34,26 @@ pub struct Actor {
     state: GameState,
     plot_tx: mpsc::UnboundedSender<plot::Msg>,
     rx: mpsc::UnboundedReceiver<Msg>,
-    quantities: Vec<Node>,
+    quantities: Vec<Element>,
     x_axis_quantity: u8,
     y_axis_quantity: u8,
 }
 
 impl Actor {
     pub fn create(
-        document: &Document,
-        tabs: &mut TabsBuilder,
+        rx: mpsc::UnboundedReceiver<Msg>,
+        quantities: Vec<Element>,
         plot_tx: mpsc::UnboundedSender<plot::Msg>,
-    ) -> Result<(Self, mpsc::UnboundedSender<Msg>), JsValue> {
-        let resources = document.create_element("div")?;
-        resources.set_class_name("tabcontent");
-
-        let table = document.create_element("table")?;
-        resources.append_child(&table)?;
-
-        let labels = [
-            "Wood",
-            "Gold",
-            "Energy",
-            "Miner",
-            "Lumberjack",
-            "Recruiter",
-            "Monster",
-            "Factory",
-            "Furnace",
-            "Bank",
-        ];
-        let mut nodes = Vec::with_capacity(labels.len());
-        for name in labels {
-            let row = document.create_element("tr")?;
-            let row: HtmlElement = row.unchecked_into();
-
-            let label = document.create_element("td")?;
-            label.set_text_content(Some(name));
-            row.append_child(&label)?;
-
-            let amount = document.create_element("td")?;
-            amount.set_text_content(Some("0"));
-            row.append_child(&amount)?;
-
-            table.append_child(&row)?;
-            nodes.push(amount.into());
-        }
-
-        tabs.with("Resources".into(), resources.unchecked_into())?;
-
-        let (tx, rx) = mpsc::unbounded();
-        let this = Self {
+    ) -> Result<Self, JsValue> {
+        Ok(Self {
             paused: false,
             state: GameState::default(),
             plot_tx,
             rx,
-            quantities: nodes,
+            quantities,
             x_axis_quantity: 1,
             y_axis_quantity: 1,
-        };
-        Ok((this, tx))
+        })
     }
 
     pub fn spawn(mut self) {
@@ -118,12 +83,19 @@ impl Actor {
             }
             Msg::Chop => self.state.chop(),
             Msg::Sell => self.state.sell_wood(),
+            Msg::FireLumberjack => self.state.remove_lumberjack(),
             Msg::HireLumberjack => self.state.hire_lumberjack(),
+            Msg::FireMiner => self.state.remove_miner(),
             Msg::HireMiner => self.state.hire_miner(),
+            Msg::FireRecruiter => self.state.remove_recruiter(),
             Msg::HireRecruiter => self.state.hire_recruiter(),
+            Msg::FireMonster => self.state.remove_monster(),
             Msg::HireMonster => self.state.hire_monster(),
+            Msg::DemolishFactory => self.state.remove_factory(),
             Msg::BuildFactory => self.state.build_factory(),
+            Msg::DemolishFurnace => self.state.remove_furnace(),
             Msg::BuildFurnace => self.state.build_furnace(),
+            Msg::DemolishBank => self.state.remove_bank(),
             Msg::BuildBank => self.state.build_bank(),
             Msg::SetXAxis(value) => {
                 self.x_axis_quantity = value;

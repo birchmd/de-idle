@@ -2,13 +2,6 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.horizontal-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 20px;
-}
-
 body {
     background-color: #f8f9fa;
     color: #333;
@@ -55,7 +48,10 @@ button {
 /* Style the tab content */
 .tabcontent {
   display: none;
-  padding: 6px 12px;
   border: 1px solid #ccc;
   border-top: none;
+}
+
+.resourceaction h3:hover {
+  background-color: #ddd;
 }

@@ -29,6 +29,10 @@ impl<Marker> Resource<Marker> {
         self.milli_amount = self.milli_amount.saturating_add(MILLI_MULTIPLIER);
     }
 
+    pub fn decrement(&mut self) {
+        self.milli_amount = self.milli_amount.saturating_sub(MILLI_MULTIPLIER);
+    }
+
     pub const fn saturating_add(self, amount: Self) -> Self {
         Self {
             milli_amount: self.milli_amount.saturating_add(amount.milli_amount),
