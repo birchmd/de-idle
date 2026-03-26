@@ -22,9 +22,11 @@ pub enum Msg {
     BuildBank,
     SetXAxis(u8),
     SetYAxis(u8),
+    TogglePause,
 }
 
 pub struct Actor {
+    paused: bool,
     state: GameState,
     plot_tx: mpsc::UnboundedSender<plot::Msg>,
     rx: mpsc::UnboundedReceiver<Msg>,
@@ -42,6 +44,9 @@ impl Actor {
         let resources = document.create_element("div")?;
         resources.set_class_name("tabcontent");
 
+        let table = document.create_element("table")?;
+        resources.append_child(&table)?;
+
         let labels = [
             "Wood",
             "Gold",
@@ -56,19 +61,18 @@ impl Actor {
         ];
         let mut nodes = Vec::with_capacity(labels.len());
         for name in labels {
-            let cell = document.create_element("div")?;
-            let cell: HtmlElement = cell.unchecked_into();
-            cell.style().set_property("display", "block")?;
+            let row = document.create_element("tr")?;
+            let row: HtmlElement = row.unchecked_into();
 
-            let label = document.create_element("p")?;
+            let label = document.create_element("td")?;
             label.set_text_content(Some(name));
-            cell.append_child(&label)?;
+            row.append_child(&label)?;
 
-            let amount = document.create_element("p")?;
+            let amount = document.create_element("td")?;
             amount.set_text_content(Some("0"));
-            cell.append_child(&amount)?;
+            row.append_child(&amount)?;
 
-            resources.append_child(&cell)?;
+            table.append_child(&row)?;
             nodes.push(amount.into());
         }
 
@@ -76,12 +80,13 @@ impl Actor {
 
         let (tx, rx) = mpsc::unbounded();
         let this = Self {
+            paused: false,
             state: GameState::default(),
             plot_tx,
             rx,
             quantities: nodes,
-            x_axis_quantity: 0,
-            y_axis_quantity: 0,
+            x_axis_quantity: 1,
+            y_axis_quantity: 1,
         };
         Ok((this, tx))
     }
@@ -97,6 +102,9 @@ impl Actor {
     fn process(&mut self, msg: Msg) {
         match msg {
             Msg::Update => {
+                if self.paused {
+                    return;
+                }
                 self.state.update();
 
                 // Update text in UI
@@ -122,6 +130,9 @@ impl Actor {
             }
             Msg::SetYAxis(value) => {
                 self.y_axis_quantity = value;
+            }
+            Msg::TogglePause => {
+                self.paused = !self.paused;
             }
         }
     }

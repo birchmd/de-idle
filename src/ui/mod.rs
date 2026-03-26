@@ -1,20 +1,21 @@
 use {
     wasm_bindgen::{JsCast, JsValue, closure::Closure},
-    web_sys::{Document, HtmlElement, HtmlSelectElement},
+    web_sys::{Document, Element, HtmlElement, HtmlSelectElement},
 };
 
 pub mod actor;
 pub mod plot;
 pub mod tabs;
 
-pub fn create_button<F: FnMut() + 'static>(
+pub fn create_button<F: FnMut(&Element) + 'static>(
     document: &Document,
     text: &str,
-    onclick: F,
+    mut onclick: F,
 ) -> Result<HtmlElement, JsValue> {
     let button = document.create_element("button")?;
     button.set_text_content(Some(text));
-    let closure = Closure::new::<Box<dyn FnMut()>>(Box::new(onclick));
+    let local_button = button.clone();
+    let closure = Closure::new::<Box<dyn FnMut()>>(Box::new(move || onclick(&local_button)));
     let elem: HtmlElement = button.unchecked_into();
     elem.set_onclick(Some(closure.as_ref().unchecked_ref()));
     closure.forget();
@@ -23,6 +24,7 @@ pub fn create_button<F: FnMut() + 'static>(
 
 pub fn create_drop_down<F: FnMut(String) + 'static>(
     document: &Document,
+    default: &str,
     options: &[&str],
     mut onchange: F,
 ) -> Result<HtmlElement, JsValue> {
@@ -36,6 +38,7 @@ pub fn create_drop_down<F: FnMut(String) + 'static>(
 
     let select: HtmlElement = select.unchecked_into();
     let closure_select: HtmlSelectElement = select.clone().unchecked_into();
+    closure_select.set_value(default);
     let closure =
         Closure::new::<Box<dyn FnMut()>>(Box::new(move || onchange(closure_select.value())));
     select.set_onchange(Some(closure.as_ref().unchecked_ref()));

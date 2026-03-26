@@ -55,6 +55,9 @@ impl PlotActor {
     ) -> Result<(Self, mpsc::UnboundedSender<Msg>), JsValue> {
         let canvas = document.create_element("canvas")?;
         let canvas: HtmlCanvasElement = canvas.unchecked_into();
+        let width = body.get_bounding_client_rect().width() as u32;
+        canvas.set_width(width);
+        canvas.set_height(width); // Set height = width for square chart area
         body.append_child(&canvas)?;
 
         let backend = CanvasBackend::with_canvas_object(canvas)
@@ -125,6 +128,7 @@ fn create_chart(
     let mut chart = ChartBuilder::on(root)
         .x_label_area_size(30)
         .y_label_area_size(30)
+        .margin(20)
         .build_cartesian_2d((min_x - dx)..(max_x + dx), (min_y - dy)..(max_y + dy))?;
     chart.configure_mesh().draw()?;
     chart.draw_series(LineSeries::new(pts.iter().copied(), &BLACK))?;
