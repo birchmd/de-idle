@@ -1,7 +1,7 @@
 use {
     std::collections::HashMap,
     wasm_bindgen::{JsCast, JsValue, closure::Closure},
-    web_sys::{Document, HtmlElement},
+    web_sys::{Document, Element, HtmlElement},
 };
 
 pub struct TabsBuilder<'a> {
@@ -23,16 +23,16 @@ impl<'a> TabsBuilder<'a> {
         })
     }
 
-    pub fn with(&mut self, name: String, content: HtmlElement) -> Result<(), JsValue> {
+    pub fn with(&mut self, name: String, content: HtmlElement) -> Result<Element, JsValue> {
         let button = self.document.create_element("button")?;
         button.set_class_name("tablinks");
         button.set_text_content(Some(&name));
 
         self.content
-            .insert(name.clone(), (content, button.unchecked_into()));
+            .insert(name.clone(), (content, button.clone().unchecked_into()));
         self.order.push(name);
 
-        Ok(())
+        Ok(button)
     }
 
     pub fn build(&self, body: &HtmlElement) -> Result<(), JsValue> {
@@ -43,6 +43,7 @@ impl<'a> TabsBuilder<'a> {
                     if name == selected_name {
                         element.style().set_property("display", "grid").ok();
                         button.set_class_name("tablinks active");
+                        button.set_text_content(Some(name));
                     } else {
                         element.style().set_property("display", "none").ok();
                         button.set_class_name("tablinks");

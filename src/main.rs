@@ -5,7 +5,7 @@ use {
     },
     futures_channel::mpsc,
     gloo_timers::callback::Interval,
-    wasm_bindgen::{JsCast, JsValue},
+    wasm_bindgen::JsValue,
     web_sys::{Document, HtmlElement},
 };
 
@@ -19,24 +19,33 @@ fn main() -> Result<(), JsValue> {
 
     let mut tabs = ui::tabs::TabsBuilder::new(&document)?;
 
-    let text = document.create_element("div")?;
-    text.set_class_name("tabcontent");
-    let label = document.create_element("div")?;
-    label.set_text_content(Some("Hello, world!"));
-    text.append_child(&label)?;
-    tabs.with("Messages".into(), text.unchecked_into())?;
-
-    let (plot_actor, plot_tx) = PlotActor::create(&document, &body)?;
+    let (goal_tx, goal_rx) = mpsc::unbounded();
+    let (plot_actor, plot_tx) = PlotActor::create(&document, &body, goal_tx)?;
     let (tx, rx) = mpsc::unbounded();
-    let resource_quantities = ui::dashboard::create_dashboard(&document, &mut tabs, tx.clone())?;
-    let actor = Actor::create(rx, resource_quantities, plot_tx.clone())?;
+    let dashboard = ui::dashboard::create_dashboard(&document, &mut tabs, tx.clone())?;
+    let actor = Actor::create(rx, dashboard.amounts, plot_tx.clone())?;
     plot_actor.spawn();
     actor.spawn();
+
+    let checkboxes = ui::goals::create_goals_tab(&document, &mut tabs)?;
+
+    let messages = ui::messages::MessagesManager::new(
+        &document,
+        &mut tabs,
+        dashboard.rows,
+        checkboxes,
+        goal_rx,
+        plot_tx.clone(),
+    )?;
 
     create_axis_selectors(&document, &body, plot_tx.clone(), tx.clone())?;
     create_pause_button(&document, &body, tx.clone())?;
 
     tabs.build(&body)?;
+
+    // Start with the `Messages` tab selected.
+    messages.click_header();
+    messages.spawn();
 
     // State update loop
     Interval::new(10, move || {

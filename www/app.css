@@ -55,3 +55,7 @@ button {
 .resourceaction h3:hover {
   background-color: #ddd;
 }
+
+.goal-image {
+  width: 300px;
+}

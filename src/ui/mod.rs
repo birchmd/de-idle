@@ -5,6 +5,8 @@ use {
 
 pub mod actor;
 pub mod dashboard;
+pub mod goals;
+pub mod messages;
 pub mod plot;
 pub mod tabs;
 

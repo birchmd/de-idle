@@ -12,18 +12,23 @@ use {
     web_sys::{Document, Element, HtmlElement},
 };
 
+pub struct Dashboard {
+    pub amounts: Vec<Element>,
+    pub rows: Vec<HtmlElement>,
+}
+
 pub fn create_dashboard(
     document: &Document,
     tabs: &mut TabsBuilder,
     tx: mpsc::UnboundedSender<Msg>,
-) -> Result<Vec<Element>, JsValue> {
-    let resources = document.create_element("div")?;
-    resources.set_class_name("tabcontent");
+) -> Result<Dashboard, JsValue> {
+    let tab_content = document.create_element("div")?;
+    tab_content.set_class_name("tabcontent");
 
     let table = document.create_element("table")?;
-    resources.append_child(&table)?;
+    tab_content.append_child(&table)?;
 
-    let rows = [
+    let resources = [
         wood_resource(tx.clone()),
         gold_resource(tx.clone()),
         energy_resource(tx.clone()),
@@ -35,16 +40,18 @@ pub fn create_dashboard(
         furnace_resource(tx.clone()),
         bank_resource(tx),
     ];
-    let mut nodes = Vec::with_capacity(rows.len());
+    let mut amounts = Vec::with_capacity(resources.len());
+    let mut rows = Vec::with_capacity(resources.len());
 
-    for resource in rows {
-        let amount = create_resource_row(document, &table, resource)?;
-        nodes.push(amount);
+    for resource in resources {
+        let (amount, row) = create_resource_row(document, &table, resource)?;
+        amounts.push(amount);
+        rows.push(row);
     }
 
-    tabs.with("Resources".into(), resources.unchecked_into())?;
+    tabs.with("Resources".into(), tab_content.unchecked_into())?;
 
-    Ok(nodes)
+    Ok(Dashboard { amounts, rows })
 }
 
 struct ResourceRow {
@@ -61,8 +68,12 @@ fn create_resource_row(
     document: &Document,
     table: &Element,
     resource: ResourceRow,
-) -> Result<Element, JsValue> {
+) -> Result<(Element, HtmlElement), JsValue> {
     let row = document.create_element("tr")?;
+    let row: HtmlElement = row.unchecked_into();
+
+    // All table rows start off hidden by default.
+    row.style().set_property("display", "none")?;
 
     // Remove side
     let cell = document.create_element("td")?;
@@ -107,7 +118,7 @@ fn create_resource_row(
 
     table.append_child(&row)?;
 
-    Ok(amount)
+    Ok((amount, row))
 }
 
 fn wood_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {

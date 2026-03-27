@@ -6,6 +6,7 @@ use {
             BLACK, ChartBuilder, DrawingArea, DrawingAreaErrorKind, IntoDrawingArea, LineSeries,
             WHITE,
         },
+        style::ShapeStyle,
     },
     plotters_backend::DrawingBackend,
     plotters_canvas::CanvasBackend,
@@ -40,18 +41,22 @@ pub enum Msg {
     Draw,
     Clear,
     Push((f64, f64)),
+    SetGoal(fn(&VecDeque<(f64, f64)>) -> bool),
 }
 
 pub struct PlotActor {
     root: DrawingArea<CanvasBackend, Shift>,
     pts: VecDeque<(f64, f64)>,
     rx: mpsc::UnboundedReceiver<Msg>,
+    goal_checker: fn(&VecDeque<(f64, f64)>) -> bool,
+    goal_notification: mpsc::UnboundedSender<()>,
 }
 
 impl PlotActor {
     pub fn create(
         document: &Document,
         body: &HtmlElement,
+        goal_notification: mpsc::UnboundedSender<()>,
     ) -> Result<(Self, mpsc::UnboundedSender<Msg>), JsValue> {
         let canvas = document.create_element("canvas")?;
         let canvas: HtmlCanvasElement = canvas.unchecked_into();
@@ -68,6 +73,8 @@ impl PlotActor {
             root,
             pts: VecDeque::new(),
             rx,
+            goal_checker: no_goal,
+            goal_notification,
         };
         Ok((this, tx))
     }
@@ -87,6 +94,9 @@ impl PlotActor {
             }
             Msg::Clear => self.clear(),
             Msg::Push((x, y)) => self.push_pt(x, y),
+            Msg::SetGoal(goal_checker) => {
+                self.goal_checker = goal_checker;
+            }
         }
     }
 
@@ -99,6 +109,10 @@ impl PlotActor {
         self.pts.push_back((x, y));
         if MAX_PLOT_HISTORY < self.pts.len() {
             self.pts.pop_front();
+        }
+        if (self.goal_checker)(&self.pts) {
+            self.goal_notification.unbounded_send(()).ok();
+            self.goal_checker = no_goal;
         }
     }
 
@@ -131,8 +145,13 @@ fn create_chart(
         .margin(20)
         .build_cartesian_2d((min_x - dx)..(max_x + dx), (min_y - dy)..(max_y + dy))?;
     chart.configure_mesh().draw()?;
-    chart.draw_series(LineSeries::new(pts.iter().copied(), &BLACK))?;
+    let style: ShapeStyle = BLACK.into();
+    chart.draw_series(LineSeries::new(pts.iter().copied(), style.stroke_width(3)))?;
     root.present()?;
 
     Ok(())
+}
+
+const fn no_goal(_: &VecDeque<(f64, f64)>) -> bool {
+    false
 }
