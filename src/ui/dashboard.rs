@@ -213,7 +213,7 @@ fn monster_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
             local_tx.unbounded_send(Msg::FireMonster).ok();
         }),
         remove_label: "Stake",
-        remove_description: "Put a Stake through the heart of a monster. #savethelumberjacks"
+        remove_description: "Put a stake through the heart of a monster. Save the lumberjacks!"
             .into(),
         name: "Monsters",
         add_fn: Box::new(move || {
