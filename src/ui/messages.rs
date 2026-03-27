@@ -8,11 +8,12 @@ use {
 
 type GoalCheckerFn = fn(&VecDeque<(f64, f64)>) -> bool;
 
-const GOAL_CHECKERS: [GoalCheckerFn; 4] = [
+const GOAL_CHECKERS: [GoalCheckerFn; 5] = [
     horizontal_goal_checker,
     vertical_goal_checker,
     step_goal_checker,
-    slope_goal_checker,
+    positive_slope_goal_checker,
+    negative_slope_goal_checker,
 ];
 const MAX_GOALS: usize = GOAL_CHECKERS.len() - 1;
 
@@ -40,6 +41,7 @@ impl MessagesManager {
 
         let message_rows = vec![
             add_message(document, &text, game_completed())?,
+            add_message(document, &text, lumberjacks_intro())?,
             add_message(document, &text, miners_intro())?,
             add_message(document, &text, wood_intro())?,
             add_message(document, &text, vertical_line_preamble())?,
@@ -94,6 +96,12 @@ impl MessagesManager {
                     .set_property("display", "block")
                     .ok();
                 self.resources[3]
+                    .style()
+                    .set_property("display", "block")
+                    .ok();
+            }
+            3 => {
+                self.resources[4]
                     .style()
                     .set_property("display", "block")
                     .ok();
@@ -165,6 +173,13 @@ The more automatic approach is to buy a Miner Bot that will dig up gold for you!
 Can you use these new resources to accomplish the next goal?"#
 }
 
+const fn lumberjacks_intro() -> &'static str {
+    r#"You're really on a roll!
+Automatically getting Gold is cool, but it would be even better if we could have zero-effort wood too.
+On the Resources tab you can now hire Lumberjacks! They can chop wood for you, but only if you have the gold to pay them.
+Go ahead and make use of them to complete the next goal."#
+}
+
 const fn game_completed() -> &'static str {
     r#"Great work! You have completed the game. Thanks for playing!"#
 }
@@ -205,7 +220,7 @@ fn step_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
     x0 != xn && pts.iter().skip(i + 1).all(|(_, y)| y == yn)
 }
 
-fn slope_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
+fn positive_slope_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
     let Some((x0, y0)) = pts.front() else {
         return false;
     };
@@ -215,7 +230,7 @@ fn slope_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
     if pts.len() < 100 {
         return false;
     }
-    if x0 == xn || yn == y0 {
+    if x0 == xn || yn <= y0 {
         return false;
     }
 
@@ -224,6 +239,29 @@ fn slope_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
 
     pts.iter().all(|(x, y)| {
         let y_calc = m * x + b;
-        (y_calc - y).abs() < 0.01
+        (y_calc - y).abs() < 0.001
+    })
+}
+
+fn negative_slope_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
+    let Some((x0, y0)) = pts.front() else {
+        return false;
+    };
+    let Some((xn, yn)) = pts.back() else {
+        return false;
+    };
+    if pts.len() < 100 {
+        return false;
+    }
+    if x0 == xn || yn >= y0 {
+        return false;
+    }
+
+    let m = (yn - y0) / (xn - x0);
+    let b = yn - m * xn;
+
+    pts.iter().all(|(x, y)| {
+        let y_calc = m * x + b;
+        (y_calc - y).abs() < 0.001
     })
 }

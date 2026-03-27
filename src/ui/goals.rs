@@ -19,6 +19,7 @@ pub fn create_goals_tab(
         ("The Slope is OVER 9000!", "vertical.png"),
         ("Step Up", "step.png"),
         ("Running Up That Hill", "slope.png"),
+        ("What Goes Up Must Come Down", "neg_slope.png"),
     ];
 
     let mut checkboxes = Vec::with_capacity(goals.len());
