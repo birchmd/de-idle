@@ -121,7 +121,7 @@ impl MessagesManager {
     }
 
     fn handle_goal_completed(&mut self) {
-        self.messages_header.set_text_content(Some("Messages (*)"));
+        self.messages_header.set_text_content(Some("Messages (🔴)"));
         self.goal_checkboxes[self.completed_goals].set_text_content(Some("✅"));
 
         let n = self.message_rows.len();
