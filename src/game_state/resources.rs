@@ -11,6 +11,10 @@ pub struct Resource<Marker> {
 }
 
 impl<Marker> Resource<Marker> {
+    pub const fn zero() -> Self {
+        Self::new(0)
+    }
+
     pub const fn new(amount: u128) -> Self {
         Self {
             milli_amount: amount.saturating_mul(MILLI_MULTIPLIER),

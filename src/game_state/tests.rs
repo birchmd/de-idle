@@ -101,6 +101,7 @@ fn test_update_furnace() {
     let expected_state = GameState {
         furnaces: Furnace::new(1),
         energy: Energy::new(1),
+        time: 2000,
         ..Default::default()
     };
     assert_eq!(state, expected_state);
@@ -120,6 +121,7 @@ fn test_update_furnace() {
     let expected_state = GameState {
         furnaces: Furnace::new(3),
         energy: Energy::new(1),
+        time: 340,
         ..Default::default()
     };
     assert_eq!(state, expected_state);
@@ -135,6 +137,7 @@ fn test_update_furnace() {
         furnaces: Furnace::new(100),
         energy: Energy::new(1),
         wood: Wood::new(1),
+        time: 10,
         ..Default::default()
     };
     assert_eq!(state, expected_state);
@@ -143,6 +146,7 @@ fn test_update_furnace() {
     let expected_state = GameState {
         furnaces: Furnace::new(100),
         energy: Energy::new(2),
+        time: 20,
         ..Default::default()
     };
     assert_eq!(state, expected_state);
@@ -157,6 +161,7 @@ fn test_update_furnace() {
     let expected_state = GameState {
         furnaces: Furnace::new(70),
         energy: Energy::new_milli(600),
+        time: 10,
         ..Default::default()
     };
     assert_eq!(state, expected_state);
@@ -187,6 +192,7 @@ fn test_update_lumberjack() {
     let expected_state = GameState {
         lumberjacks: Lumberjack::new(1),
         wood: Wood::new(1),
+        time: 2000,
         ..Default::default()
     };
     assert_eq!(state, expected_state);
@@ -217,6 +223,7 @@ fn test_update_factory() {
     let expected_state = GameState {
         factories: Factory::new(1),
         miners: Miner::new(1),
+        time: 2000,
         ..Default::default()
     };
     assert_eq!(state, expected_state);

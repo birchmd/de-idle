@@ -27,6 +27,7 @@ pub enum Msg {
     SetXAxis(u8),
     SetYAxis(u8),
     TogglePause,
+    Reset,
 }
 
 pub struct Actor {
@@ -106,6 +107,7 @@ impl Actor {
             Msg::TogglePause => {
                 self.paused = !self.paused;
             }
+            Msg::Reset => self.state.reset(),
         }
     }
 }

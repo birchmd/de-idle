@@ -224,6 +224,19 @@ impl GameState {
         self.miners
             .update(ResourceDiff::new(produced_miners.raw_milli_amount() as i128));
     }
+
+    pub fn reset(&mut self) {
+        self.wood = Resource::zero();
+        self.gold = Resource::zero();
+        self.energy = Resource::zero();
+        self.lumberjacks = Resource::zero();
+        self.miners = Resource::zero();
+        self.recruiters = Resource::zero();
+        self.monsters = Resource::zero();
+        self.banks = Resource::zero();
+        self.furnaces = Resource::zero();
+        self.factories = Resource::zero();
+    }
 }
 
 trait Producer<R>: Sized {

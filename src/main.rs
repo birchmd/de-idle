@@ -40,6 +40,7 @@ fn main() -> Result<(), JsValue> {
 
     create_axis_selectors(&document, &body, plot_tx.clone(), tx.clone())?;
     create_pause_button(&document, &body, tx.clone())?;
+    create_reset_button(&document, &body, tx.clone())?;
 
     tabs.build(&body)?;
 
@@ -142,6 +143,21 @@ fn create_pause_button(
     pause_button.style().set_property("line-height", "1.6")?;
     pause_button.style().set_property("font-size", "1rem")?;
     body.append_child(&pause_button)?;
+
+    Ok(())
+}
+
+fn create_reset_button(
+    document: &Document,
+    body: &HtmlElement,
+    tx: mpsc::UnboundedSender<Msg>,
+) -> Result<(), JsValue> {
+    let reset_button = ui::create_button(document, "Reset Resources", move |_| {
+        tx.unbounded_send(Msg::Reset).ok();
+    })?;
+    reset_button.style().set_property("line-height", "1.6")?;
+    reset_button.style().set_property("font-size", "1rem")?;
+    body.append_child(&reset_button)?;
 
     Ok(())
 }

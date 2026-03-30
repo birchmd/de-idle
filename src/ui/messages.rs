@@ -8,12 +8,14 @@ use {
 
 type GoalCheckerFn = fn(&VecDeque<(f64, f64)>) -> bool;
 
-const GOAL_CHECKERS: [GoalCheckerFn; 5] = [
+const GOAL_CHECKERS: [GoalCheckerFn; 7] = [
     horizontal_goal_checker,
     vertical_goal_checker,
     step_goal_checker,
     positive_slope_goal_checker,
     negative_slope_goal_checker,
+    peak_goal_checker,
+    parabola_goal_checker,
 ];
 const MAX_GOALS: usize = GOAL_CHECKERS.len() - 1;
 
@@ -41,6 +43,8 @@ impl MessagesManager {
 
         let message_rows = vec![
             add_message(document, &text, game_completed())?,
+            add_message(document, &text, factories_intro())?,
+            add_message(document, &text, peak_goal_intro())?,
             add_message(document, &text, lumberjacks_intro())?,
             add_message(document, &text, miners_intro())?,
             add_message(document, &text, wood_intro())?,
@@ -85,29 +89,29 @@ impl MessagesManager {
         match self.completed_goals {
             0 => (),
             1 => {
-                self.resources[0]
-                    .style()
-                    .set_property("display", "block")
-                    .ok();
+                self.reveal_resource(0);
             }
             2 => {
-                self.resources[1]
-                    .style()
-                    .set_property("display", "block")
-                    .ok();
-                self.resources[3]
-                    .style()
-                    .set_property("display", "block")
-                    .ok();
+                self.reveal_resource(1);
+                self.reveal_resource(3);
             }
             3 => {
-                self.resources[4]
-                    .style()
-                    .set_property("display", "block")
-                    .ok();
+                self.reveal_resource(4);
+            }
+            5 => {
+                self.reveal_resource(2);
+                self.reveal_resource(7);
+                self.reveal_resource(8);
             }
             _ => (),
         }
+    }
+
+    fn reveal_resource(&self, index: usize) {
+        self.resources[index]
+            .style()
+            .set_property("display", "block")
+            .ok();
     }
 
     fn handle_goal_completed(&mut self) {
@@ -178,6 +182,16 @@ const fn lumberjacks_intro() -> &'static str {
 Automatically getting Gold is cool, but it would be even better if we could have zero-effort wood too.
 On the Resources tab you can now hire Lumberjacks! They can chop wood for you, but only if you have the gold to pay them.
 Go ahead and make use of them to complete the next goal."#
+}
+
+const fn peak_goal_intro() -> &'static str {
+    r#"You're really getting the hang of this! You already have everything you need to complete the next goal as well."#
+}
+
+const fn factories_intro() -> &'static str {
+    r#"Amazing! With all this wood we can really start industrializing.
+You now have access to energy as a resources as well as two buildings: furnaces and factories.
+Take a look at them in the Resources tab and figure out how to accomplish the next goal."#
 }
 
 const fn game_completed() -> &'static str {
@@ -263,5 +277,82 @@ fn negative_slope_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
     pts.iter().all(|(x, y)| {
         let y_calc = m * x + b;
         (y_calc - y).abs() < 0.001
+    })
+}
+
+fn peak_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
+    let Some((x0, y0)) = pts.front() else {
+        return false;
+    };
+    let Some((xn, yn)) = pts.back() else {
+        return false;
+    };
+    if pts.len() < 100 {
+        return false;
+    }
+    let (xm, ym) = pts.iter().fold(
+        (x0, y0),
+        |(xm, ym), (x, y)| {
+            if ym < y { (x, y) } else { (xm, ym) }
+        },
+    );
+
+    // Peak cannot be at the beginning or end.
+    if xm == x0 || xm == xn {
+        return false;
+    }
+
+    // The line must go up and back down (not only plateau)
+    if y0 == ym || yn == ym {
+        return false;
+    }
+
+    // Require the peak to be within the middle third of the plot
+    if (xm - x0) > 2.0 * (xn - xm) {
+        return false;
+    }
+
+    let m = (ym - y0) / (xm - x0);
+    let b1 = ym - m * xm;
+    let b2 = yn + m * xn;
+
+    pts.iter().all(|(x, y)| {
+        let y_calc = if x <= xm { m * x + b1 } else { -m * x + b2 };
+        // Must be close to the calculated line or part of the peak
+        // (which is allowed to be a short plateau).
+        (y_calc - y).abs() < 0.001 || y == ym
+    })
+}
+
+fn parabola_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
+    let Some((x0, y0)) = pts.front() else {
+        return false;
+    };
+    let Some((xn, yn)) = pts.back() else {
+        return false;
+    };
+    if pts.len() < 100 {
+        return false;
+    }
+    // For an upward-facing parabola, the vertex is the lowest point.
+    let (xv, yv) = pts.iter().fold(
+        (x0, y0),
+        |(xv, yv), (x, y)| {
+            if y < yv { (x, y) } else { (xv, yv) }
+        },
+    );
+
+    // Do not allow the vertex to be at the start or the end.
+    if x0 == xv || xn == xv {
+        return false;
+    }
+
+    let a = (yn - yv) / ((xn - xv) * (xn - xv));
+
+    pts.iter().all(|(x, y)| {
+        let y_calc = a * (x - xv) * (x - xv) + yv;
+        let relative_deviation = (y_calc - y).abs() / y_calc;
+        // Require points to be within 1% of calculated
+        relative_deviation < 0.01
     })
 }
