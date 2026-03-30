@@ -1,5 +1,8 @@
 use {
-    crate::ui::{plot::Msg, tabs::TabsBuilder},
+    crate::{
+        sliding3::Sliding3,
+        ui::{plot::Msg, tabs::TabsBuilder},
+    },
     futures_channel::mpsc,
     std::collections::VecDeque,
     wasm_bindgen::{JsCast, JsValue},
@@ -331,28 +334,61 @@ fn parabola_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
     let Some((xn, yn)) = pts.back() else {
         return false;
     };
+
     if pts.len() < 100 {
         return false;
     }
-    // For an upward-facing parabola, the vertex is the lowest point.
-    let (xv, yv) = pts.iter().fold(
-        (x0, y0),
-        |(xv, yv), (x, y)| {
-            if y < yv { (x, y) } else { (xv, yv) }
-        },
-    );
 
-    // Do not allow the vertex to be at the start or the end.
-    if x0 == xv || xn == xv {
+    let ym = pts
+        .iter()
+        .fold(y0, |acc, (_, y)| if y < acc { y } else { acc });
+
+    // Early return if the min is at the beginning or end
+    if ym == y0 || ym == yn {
         return false;
     }
 
-    let a = (yn - yv) / ((xn - xv) * (xn - xv));
+    let xm = {
+        let (total, count) = pts.iter().fold((0.0, 0), |(sum, count), (x, y)| {
+            if y == ym {
+                (sum + x, count + 1)
+            } else {
+                (sum, count)
+            }
+        });
+        total / (count as f64)
+    };
 
-    pts.iter().all(|(x, y)| {
-        let y_calc = a * (x - xv) * (x - xv) + yv;
-        let relative_deviation = (y_calc - y).abs() / y_calc;
-        // Require points to be within 1% of calculated
-        relative_deviation < 0.01
-    })
+    // Lowest point must be in the middle third of the plot
+    if (xm - x0) > 2.0 * (xn - xm) {
+        return false;
+    }
+
+    // The leading coefficient of the parabola is half of the second derivative.
+    let a = {
+        let (total, count) = Sliding3::new(pts.iter()).fold((0.0, 0), |(sum, count), window| {
+            let (x0, y0) = window[0];
+            let (x1, y1) = window[1];
+            let (x2, y2) = window[2];
+            let dx0 = x1 - x0;
+            let dx1 = x2 - x1;
+            let sd = (y2 * dx0 - y1 * (x2 - x0) + y0 * dx1) / (dx1 * dx0 * dx0);
+            (sum + sd, count + 1)
+        });
+        total / ((2 * count) as f64)
+    };
+
+    let total_error: f64 = pts
+        .iter()
+        .map(|(x, y)| {
+            let dx = x - xm;
+            let y_calc = a * dx * dx + ym;
+            let dy = y - y_calc;
+            dy * dy
+        })
+        .sum();
+
+    // Pass condition is based on the mean-square error being small.
+    let mse = total_error / (pts.len() as f64);
+    mse < 0.01
 }

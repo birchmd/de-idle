@@ -10,6 +10,7 @@ use {
 };
 
 mod game_state;
+mod sliding3;
 mod ui;
 
 fn main() -> Result<(), JsValue> {
