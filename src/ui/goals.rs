@@ -22,6 +22,7 @@ pub fn create_goals_tab(
         ("What Goes Up Must Come Down", "neg_slope.png"),
         ("You've Piqued My Interest", "peak.png"),
         ("Turn That Frown Upside Down", "parabola.png"),
+        ("Stonks!", "exponential.png"),
     ];
 
     let mut checkboxes = Vec::with_capacity(goals.len());

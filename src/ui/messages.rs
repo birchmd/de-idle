@@ -11,7 +11,7 @@ use {
 
 type GoalCheckerFn = fn(&VecDeque<(f64, f64)>) -> bool;
 
-const GOAL_CHECKERS: [GoalCheckerFn; 7] = [
+const GOAL_CHECKERS: [GoalCheckerFn; 8] = [
     horizontal_goal_checker,
     vertical_goal_checker,
     step_goal_checker,
@@ -19,6 +19,7 @@ const GOAL_CHECKERS: [GoalCheckerFn; 7] = [
     negative_slope_goal_checker,
     peak_goal_checker,
     parabola_goal_checker,
+    exponential_goal_checker,
 ];
 const MAX_GOALS: usize = GOAL_CHECKERS.len() - 1;
 
@@ -46,6 +47,7 @@ impl MessagesManager {
 
         let message_rows = vec![
             add_message(document, &text, game_completed())?,
+            add_message(document, &text, banks_intro())?,
             add_message(document, &text, factories_intro())?,
             add_message(document, &text, peak_goal_intro())?,
             add_message(document, &text, lumberjacks_intro())?,
@@ -106,6 +108,7 @@ impl MessagesManager {
                 self.reveal_resource(7);
                 self.reveal_resource(8);
             }
+            6 => self.reveal_resource(9),
             _ => (),
         }
     }
@@ -195,6 +198,11 @@ const fn factories_intro() -> &'static str {
     r#"Amazing! With all this wood we can really start industrializing.
 You now have access to energy as a resources as well as two buildings: furnaces and factories.
 Take a look at them in the Resources tab and figure out how to accomplish the next goal."#
+}
+
+const fn banks_intro() -> &'static str {
+    r#"Awesome! Now it is time to make a number go brrrrrrrr. The Resources tab as a new building: banks.
+These will allow you to complete the next goal."#
 }
 
 const fn game_completed() -> &'static str {
@@ -391,4 +399,27 @@ fn parabola_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
     // Pass condition is based on the mean-square error being small.
     let mse = total_error / (pts.len() as f64);
     mse < 0.01
+}
+
+fn exponential_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
+    let Some((x0, y0)) = pts.front() else {
+        return false;
+    };
+    let Some((xn, yn)) = pts.back() else {
+        return false;
+    };
+    if pts.len() < 500 {
+        return false;
+    }
+    if x0 == xn || yn <= y0 || y0 <= &0.0 {
+        return false;
+    }
+
+    let n = pts.len() as f64;
+    let b = ((yn.ln() - y0.ln()) / n).exp();
+    Sliding3::new(pts.iter()).all(|[(_, y0), (_, y1), (_, y2)]| {
+        let e1 = (y1 - b * y0).abs() / y1;
+        let e2 = (y2 - b * y1).abs() / y2;
+        y0 < y1 && y1 < y2 && e1 < 0.001 && e2 < 0.001
+    })
 }
