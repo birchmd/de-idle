@@ -1,4 +1,5 @@
 use {
+    crate::ui::goal_checkers::GoalCheckerFn,
     futures_channel::mpsc,
     plotters::{
         coord::Shift,
@@ -41,7 +42,7 @@ pub enum Msg {
     Draw,
     Clear,
     Push((f64, f64)),
-    SetGoal(fn(&VecDeque<(f64, f64)>) -> bool),
+    SetGoal(GoalCheckerFn),
 }
 
 pub struct PlotActor {

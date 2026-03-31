@@ -24,7 +24,7 @@ fn main() -> Result<(), JsValue> {
     let (plot_actor, plot_tx) = PlotActor::create(&document, &body, goal_tx)?;
     let (tx, rx) = mpsc::unbounded();
     let dashboard = ui::dashboard::create_dashboard(&document, &mut tabs, tx.clone())?;
-    let actor = Actor::create(rx, dashboard.amounts, plot_tx.clone())?;
+    let actor = Actor::create(rx, dashboard.amounts, plot_tx.clone());
     plot_actor.spawn();
     actor.spawn();
 

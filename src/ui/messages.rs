@@ -1,25 +1,23 @@
 use {
-    crate::{
-        sliding3::Sliding3,
-        ui::{plot::Msg, tabs::TabsBuilder},
+    crate::ui::{
+        goal_checkers::{self, GoalCheckerFn},
+        plot::Msg,
+        tabs::TabsBuilder,
     },
     futures_channel::mpsc,
-    std::collections::VecDeque,
     wasm_bindgen::{JsCast, JsValue},
     web_sys::{Document, Element, HtmlElement},
 };
 
-type GoalCheckerFn = fn(&VecDeque<(f64, f64)>) -> bool;
-
 const GOAL_CHECKERS: [GoalCheckerFn; 8] = [
-    horizontal_goal_checker,
-    vertical_goal_checker,
-    step_goal_checker,
-    positive_slope_goal_checker,
-    negative_slope_goal_checker,
-    peak_goal_checker,
-    parabola_goal_checker,
-    exponential_goal_checker,
+    goal_checkers::linear::horizontal_goal_checker,
+    goal_checkers::linear::vertical_goal_checker,
+    goal_checkers::linear::step_goal_checker,
+    goal_checkers::linear::positive_slope_goal_checker,
+    goal_checkers::linear::negative_slope_goal_checker,
+    goal_checkers::linear::peak_goal_checker,
+    goal_checkers::quadratic::parabola_goal_checker,
+    goal_checkers::exponential::exponential_goal_checker,
 ];
 const MAX_GOALS: usize = GOAL_CHECKERS.len() - 1;
 
@@ -80,7 +78,7 @@ impl MessagesManager {
     pub fn spawn(mut self) {
         // Initial goal
         self.plot_tx
-            .unbounded_send(Msg::SetGoal(horizontal_goal_checker))
+            .unbounded_send(Msg::SetGoal(GOAL_CHECKERS[0]))
             .ok();
 
         wasm_bindgen_futures::spawn_local(async move {
@@ -207,219 +205,4 @@ These will allow you to complete the next goal."#
 
 const fn game_completed() -> &'static str {
     r#"Great work! You have completed the game. Thanks for playing!"#
-}
-
-fn horizontal_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
-    let Some((x0, y0)) = pts.front() else {
-        return false;
-    };
-    if pts.len() < 100 {
-        return false;
-    }
-    pts.iter().any(|(x, _)| x != x0) && pts.iter().all(|(_, y)| y == y0)
-}
-
-fn vertical_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
-    let Some((x0, y0)) = pts.front() else {
-        return false;
-    };
-    if pts.len() < 100 {
-        return false;
-    }
-    pts.iter().any(|(_, y)| y != y0) && pts.iter().all(|(x, _)| x == x0)
-}
-
-fn step_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
-    let Some((x0, y0)) = pts.front() else {
-        return false;
-    };
-    let Some((xn, yn)) = pts.back() else {
-        return false;
-    };
-    if pts.len() < 100 {
-        return false;
-    }
-    let Some(i) = pts.iter().position(|(_, y)| y != y0) else {
-        return false;
-    };
-    x0 != xn && pts.iter().skip(i + 1).all(|(_, y)| y == yn)
-}
-
-fn positive_slope_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
-    let Some((x0, y0)) = pts.front() else {
-        return false;
-    };
-    let Some((xn, yn)) = pts.back() else {
-        return false;
-    };
-    if pts.len() < 100 {
-        return false;
-    }
-    if x0 == xn || yn <= y0 {
-        return false;
-    }
-
-    let m = (yn - y0) / (xn - x0);
-    let b = yn - m * xn;
-
-    pts.iter().all(|(x, y)| {
-        let y_calc = m * x + b;
-        (y_calc - y).abs() < 0.001
-    })
-}
-
-fn negative_slope_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
-    let Some((x0, y0)) = pts.front() else {
-        return false;
-    };
-    let Some((xn, yn)) = pts.back() else {
-        return false;
-    };
-    if pts.len() < 100 {
-        return false;
-    }
-    if x0 == xn || yn >= y0 {
-        return false;
-    }
-
-    let m = (yn - y0) / (xn - x0);
-    let b = yn - m * xn;
-
-    pts.iter().all(|(x, y)| {
-        let y_calc = m * x + b;
-        (y_calc - y).abs() < 0.001
-    })
-}
-
-fn peak_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
-    let Some((x0, y0)) = pts.front() else {
-        return false;
-    };
-    let Some((xn, yn)) = pts.back() else {
-        return false;
-    };
-    if pts.len() < 100 {
-        return false;
-    }
-    let (xm, ym) = pts.iter().fold(
-        (x0, y0),
-        |(xm, ym), (x, y)| {
-            if ym < y { (x, y) } else { (xm, ym) }
-        },
-    );
-
-    // Peak cannot be at the beginning or end.
-    if xm == x0 || xm == xn {
-        return false;
-    }
-
-    // The line must go up and back down (not only plateau)
-    if y0 == ym || yn == ym {
-        return false;
-    }
-
-    // Require the peak to be within the middle third of the plot
-    if (xm - x0) > 2.0 * (xn - xm) {
-        return false;
-    }
-
-    let m = (ym - y0) / (xm - x0);
-    let b1 = ym - m * xm;
-    let b2 = yn + m * xn;
-
-    pts.iter().all(|(x, y)| {
-        let y_calc = if x <= xm { m * x + b1 } else { -m * x + b2 };
-        // Must be close to the calculated line or part of the peak
-        // (which is allowed to be a short plateau).
-        (y_calc - y).abs() < 0.001 || y == ym
-    })
-}
-
-fn parabola_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
-    let Some((x0, y0)) = pts.front() else {
-        return false;
-    };
-    let Some((xn, yn)) = pts.back() else {
-        return false;
-    };
-
-    if pts.len() < 100 {
-        return false;
-    }
-
-    let ym = pts
-        .iter()
-        .fold(y0, |acc, (_, y)| if y < acc { y } else { acc });
-
-    // Early return if the min is at the beginning or end
-    if ym == y0 || ym == yn {
-        return false;
-    }
-
-    let xm = {
-        let (total, count) = pts.iter().fold((0.0, 0), |(sum, count), (x, y)| {
-            if y == ym {
-                (sum + x, count + 1)
-            } else {
-                (sum, count)
-            }
-        });
-        total / (count as f64)
-    };
-
-    // Lowest point must be in the middle third of the plot
-    if (xm - x0) > 2.0 * (xn - xm) {
-        return false;
-    }
-
-    // The leading coefficient of the parabola is half of the second derivative.
-    let a = {
-        let (total, count) = Sliding3::new(pts.iter()).fold((0.0, 0), |(sum, count), window| {
-            let (x0, y0) = window[0];
-            let (x1, y1) = window[1];
-            let (x2, y2) = window[2];
-            let dx0 = x1 - x0;
-            let dx1 = x2 - x1;
-            let sd = (y2 * dx0 - y1 * (x2 - x0) + y0 * dx1) / (dx1 * dx0 * dx0);
-            (sum + sd, count + 1)
-        });
-        total / ((2 * count) as f64)
-    };
-
-    let total_error: f64 = pts
-        .iter()
-        .map(|(x, y)| {
-            let dx = x - xm;
-            let y_calc = a * dx * dx + ym;
-            let dy = y - y_calc;
-            dy * dy
-        })
-        .sum();
-
-    // Pass condition is based on the mean-square error being small.
-    let mse = total_error / (pts.len() as f64);
-    mse < 0.01
-}
-
-fn exponential_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
-    let Some((x0, y0)) = pts.front() else {
-        return false;
-    };
-    let Some((xn, yn)) = pts.back() else {
-        return false;
-    };
-    if pts.len() < 500 {
-        return false;
-    }
-    if x0 == xn || yn <= y0 || y0 <= &0.0 {
-        return false;
-    }
-
-    let n = pts.len() as f64;
-    let b = ((yn.ln() - y0.ln()) / n).exp();
-    Sliding3::new(pts.iter()).all(|[(_, y0), (_, y1), (_, y2)]| {
-        let e1 = (y1 - b * y0).abs() / y1;
-        let e2 = (y2 - b * y1).abs() / y2;
-        y0 < y1 && y1 < y2 && e1 < 0.001 && e2 < 0.001
-    })
 }

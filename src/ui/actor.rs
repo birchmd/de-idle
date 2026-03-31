@@ -1,7 +1,6 @@
 use {
     crate::{game_state::GameState, ui::plot},
     futures_channel::mpsc,
-    wasm_bindgen::JsValue,
     web_sys::Element,
 };
 
@@ -45,8 +44,8 @@ impl Actor {
         rx: mpsc::UnboundedReceiver<Msg>,
         quantities: Vec<Element>,
         plot_tx: mpsc::UnboundedSender<plot::Msg>,
-    ) -> Result<Self, JsValue> {
-        Ok(Self {
+    ) -> Self {
+        Self {
             paused: false,
             state: GameState::default(),
             plot_tx,
@@ -54,7 +53,7 @@ impl Actor {
             quantities,
             x_axis_quantity: 1,
             y_axis_quantity: 1,
-        })
+        }
     }
 
     pub fn spawn(mut self) {
@@ -65,7 +64,7 @@ impl Actor {
         })
     }
 
-    fn process(&mut self, msg: Msg) {
+    pub fn process(&mut self, msg: Msg) {
         match msg {
             Msg::Update => {
                 if self.paused {
