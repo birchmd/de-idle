@@ -9,7 +9,7 @@ use {
     web_sys::{Document, Element, HtmlElement},
 };
 
-const GOAL_CHECKERS: [GoalCheckerFn; 8] = [
+const GOAL_CHECKERS: [GoalCheckerFn; 10] = [
     goal_checkers::linear::horizontal_goal_checker,
     goal_checkers::linear::vertical_goal_checker,
     goal_checkers::linear::step_goal_checker,
@@ -18,6 +18,8 @@ const GOAL_CHECKERS: [GoalCheckerFn; 8] = [
     goal_checkers::linear::peak_goal_checker,
     goal_checkers::quadratic::parabola_goal_checker,
     goal_checkers::exponential::exponential_goal_checker,
+    goal_checkers::sinusoidal::wave_goal_checker,
+    goal_checkers::sinusoidal::circle_goal_checker,
 ];
 const MAX_GOALS: usize = GOAL_CHECKERS.len() - 1;
 
@@ -45,6 +47,8 @@ impl MessagesManager {
 
         let message_rows = vec![
             add_message(document, &text, game_completed())?,
+            add_message(document, &text, circle_intro())?,
+            add_message(document, &text, advertisement_intro())?,
             add_message(document, &text, banks_intro())?,
             add_message(document, &text, factories_intro())?,
             add_message(document, &text, peak_goal_intro())?,
@@ -107,6 +111,10 @@ impl MessagesManager {
                 self.reveal_resource(8);
             }
             6 => self.reveal_resource(9),
+            7 => {
+                self.reveal_resource(5);
+                self.reveal_resource(6);
+            }
             _ => (),
         }
     }
@@ -201,6 +209,17 @@ Take a look at them in the Resources tab and figure out how to accomplish the ne
 const fn banks_intro() -> &'static str {
     r#"Awesome! Now it is time to make a number go brrrrrrrr. The Resources tab as a new building: banks.
 These will allow you to complete the next goal."#
+}
+
+const fn advertisement_intro() -> &'static str {
+    r#"Great work! Those banks can make the amount of Gold a little unwieldy; if you need to bring it back down to earth, use the 'Reset Resources' button.
+You now have two new tools in the Resources tab: Advertisements cause Lumberjacks to automatically be hired while
+Monsters make the woods a more dangerous place by eating Lumberjacks.
+See if you can make use of these in completing the next goal."#
+}
+
+const fn circle_intro() -> &'static str {
+    r#"Nice job setting up the lumberjack ecosystem! Now it should be easy for you to accomplish the next goal."#
 }
 
 const fn game_completed() -> &'static str {
