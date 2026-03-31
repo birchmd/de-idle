@@ -1,4 +1,4 @@
-use {crate::sliding3::Sliding3, std::collections::VecDeque};
+use std::collections::VecDeque;
 
 #[cfg(test)]
 use {
@@ -20,13 +20,28 @@ pub fn exponential_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
         return false;
     }
 
-    let n = pts.len() as f64;
-    let b = ((yn.ln() - y0.ln()) / n).exp();
-    Sliding3::new(pts.iter()).all(|[(_, y0), (_, y1), (_, y2)]| {
-        let e1 = (y1 - b * y0).abs() / y1;
-        let e2 = (y2 - b * y1).abs() / y2;
-        y0 < y1 && y1 < y2 && e1 < 0.001 && e2 < 0.001
-    })
+    let slope = (yn.ln() - y0.ln()) / (xn - x0);
+
+    // Since the only way to produce exponential growth is with a bank,
+    // which is effectively continuously compounding interest, the function
+    // should be close to e^x (i.e. log slope close to 1). If there are multiple
+    // banks then the slope could exceed 1 (e.g. 2 banks close to a slope of 2).
+    if slope < 0.9 {
+        return false;
+    }
+
+    let intercept = yn.ln() - x0 * slope;
+
+    let (total_error, total_values) = pts.iter().fold((0.0, 0.0), |(te, tv), (x, y)| {
+        let y_calc = slope * x + intercept;
+        let ln_y = y.ln();
+        let dy = y_calc - ln_y;
+        (te + dy * dy, tv + ln_y)
+    });
+    let mv = total_values / (pts.len() as f64);
+    let mean_error = total_error.sqrt() / mv;
+
+    mean_error < 100.0
 }
 
 #[test]
@@ -46,7 +61,9 @@ fn test_exponential() {
     assert!(!exponential_goal_checker(&pts));
 
     // Fails on positive slope
-    let msgs = create_miner().chain(vec![Msg::SetXAxis(0), Msg::SetYAxis(2)]);
+    let msgs = create_miner()
+        .chain(add_gold(1))
+        .chain(vec![Msg::SetXAxis(0), Msg::SetYAxis(2)]);
     let pts = create_pts(msgs);
     assert!(!exponential_goal_checker(&pts));
 
