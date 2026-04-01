@@ -10,8 +10,8 @@ use {
 };
 
 mod game_state;
-mod sliding3;
 mod ui;
+mod utils;
 
 fn main() -> Result<(), JsValue> {
     let window = web_sys::window().expect("no global `window` exists");

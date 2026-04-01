@@ -1,8 +1,16 @@
-use {crate::sliding3::Sliding3, std::collections::VecDeque};
+use {
+    crate::utils::{
+        min_max,
+        point::Point,
+        sequence::{MappedVecDeque, Sequence},
+        sliding3::Sliding3,
+    },
+    std::collections::VecDeque,
+};
 
 #[cfg(test)]
 use {
-    super::tests::{add_gold, build_furnace, create_miner, create_pts},
+    super::tests::{add_gold, build_factory, build_furnace, create_miner, create_pts},
     crate::ui::actor::Msg,
 };
 
@@ -56,16 +64,81 @@ pub fn wave_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
 }
 
 pub fn circle_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
-    let Some((x0, y0)) = pts.front() else {
+    inner_circle_goal_checker(pts)
+}
+
+pub fn knot_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
+    if pts.len() < 500 {
+        return false;
+    }
+
+    let mut local_min = Sliding3::new(pts.iter().map(|(x, _)| x).enumerate()).filter_map(
+        |[(_, x0), (t1, x1), (_, x2)]| {
+            if x1 < x0 && x1 < x2 {
+                Some((t1, x1))
+            } else {
+                None
+            }
+        },
+    );
+
+    let Some((t0, x0)) = local_min.next() else {
         return false;
     };
+
+    let Some((t1, x1)) = local_min.next() else {
+        return false;
+    };
+
+    // The x coordinate changes as a wave plus a line.
+    // We compute the slope of the line by comparing two consecutive minima of the wave.
+    let slope = (x1 - x0) / ((t1 - t0) as f64);
+
+    // We need a non-trivial slope, or else it is just a circle.
+    if slope < 0.005 {
+        return false;
+    }
+
+    // Map the x coordinate to subtract the linear part
+    let mapped_pts = MappedVecDeque {
+        inner: pts,
+        f: |enumerated_point: (usize, &(f64, f64))| {
+            let (i, (x, y)) = enumerated_point;
+            let t = i as f64;
+            (x - slope * t, *y)
+        },
+    };
+
+    // Now we have two normal waves, so it should pass the circle check.
+    inner_circle_goal_checker(mapped_pts)
+}
+
+// Generalized circle check function so that it can be used both
+// for the normal circle case and the knot case (which is a circle
+// where one of the coordinates is moving linearly over time).
+fn inner_circle_goal_checker<I, P, T>(pts: I) -> bool
+where
+    I: Sequence<Item = P>,
+    P: Point<Coord = T> + Copy,
+    T: Copy
+        + PartialOrd
+        + std::ops::Add<Output = f64>
+        + std::ops::Sub<Output = f64>
+        + std::ops::Add<f64, Output = f64>
+        + std::ops::Sub<f64, Output = f64>,
+{
+    let Some(p0) = pts.front() else {
+        return false;
+    };
+    let x0 = p0.fst();
+    let y0 = p0.snd();
 
     if pts.len() < 500 {
         return false;
     }
 
-    let (min_x, max_x) = min_max(x0, pts.iter().map(|(x, _)| x));
-    let (min_y, max_y) = min_max(y0, pts.iter().map(|(_, y)| y));
+    let (min_x, max_x) = min_max(x0, pts.iter().map(Point::fst));
+    let (min_y, max_y) = min_max(y0, pts.iter().map(Point::snd));
 
     let mx = (max_x + min_x) / 2.0;
     let rx = (max_x - min_x) / 2.0;
@@ -76,7 +149,9 @@ pub fn circle_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
     // After normalization, the radius of the circle should be 1.
     let total_error: f64 = pts
         .iter()
-        .map(|(x, y)| {
+        .map(|p| {
+            let x = p.fst();
+            let y = p.snd();
             let norm_x = (x - mx) / rx;
             let norm_y = (y - my) / ry;
 
@@ -91,21 +166,6 @@ pub fn circle_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
     let mse = total_error / (pts.len() as f64);
 
     mse < 0.001
-}
-
-fn min_max<'a, I>(x0: &'a f64, xs: I) -> (&'a f64, &'a f64)
-where
-    I: Iterator<Item = &'a f64>,
-{
-    xs.fold((x0, x0), |(min, max), x| {
-        if x < min {
-            (x, max)
-        } else if max < x {
-            (min, x)
-        } else {
-            (min, max)
-        }
-    })
 }
 
 #[cfg(test)]
@@ -175,4 +235,23 @@ fn test_circle() {
         .chain(vec![Msg::SetXAxis(0), Msg::SetYAxis(2)]);
     let pts = create_pts(msgs);
     assert!(!circle_goal_checker(&pts));
+}
+
+#[test]
+fn test_knot() {
+    let get_energy = build_furnace()
+        .chain(std::iter::repeat_n(Msg::Chop, 2000))
+        .chain(std::iter::repeat_n(Msg::Update, 200_000));
+    let miners = std::iter::repeat_with(create_miner).take(30).flatten();
+    let msgs = get_energy
+        .chain(miners)
+        .chain(std::iter::repeat_n(Msg::HireRecruiter, 22))
+        .chain(std::iter::repeat_n(Msg::HireMonster, 21))
+        .chain(std::iter::repeat_n(Msg::HireLumberjack, 10))
+        .chain(vec![Msg::SetXAxis(5), Msg::SetYAxis(2)])
+        .chain(std::iter::repeat_n(Msg::Update, 200_000))
+        .chain(build_factory())
+        .chain(std::iter::repeat_n(Msg::Update, 5125));
+    let pts = create_pts(msgs);
+    assert!(knot_goal_checker(&pts));
 }

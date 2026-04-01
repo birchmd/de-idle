@@ -1,4 +1,4 @@
-use {crate::sliding3::Sliding3, std::collections::VecDeque};
+use {crate::utils::sliding3::Sliding3, std::collections::VecDeque};
 
 #[cfg(test)]
 use {
