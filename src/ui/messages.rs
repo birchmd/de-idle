@@ -9,7 +9,7 @@ use {
     web_sys::{Document, Element, HtmlElement},
 };
 
-const GOAL_CHECKERS: [GoalCheckerFn; 11] = [
+const GOAL_CHECKERS: [GoalCheckerFn; 12] = [
     goal_checkers::linear::horizontal_goal_checker,
     goal_checkers::linear::vertical_goal_checker,
     goal_checkers::linear::step_goal_checker,
@@ -21,6 +21,7 @@ const GOAL_CHECKERS: [GoalCheckerFn; 11] = [
     goal_checkers::sinusoidal::wave_goal_checker,
     goal_checkers::sinusoidal::circle_goal_checker,
     goal_checkers::sinusoidal::knot_goal_checker,
+    goal_checkers::sinusoidal::bend_goal_checker,
 ];
 const MAX_GOALS: usize = GOAL_CHECKERS.len() - 1;
 
@@ -48,6 +49,7 @@ impl MessagesManager {
 
         let message_rows = vec![
             add_message(document, &text, game_completed())?,
+            add_message(document, &text, bend_intro())?,
             add_message(document, &text, knot_intro())?,
             add_message(document, &text, circle_intro())?,
             add_message(document, &text, advertisement_intro())?,
@@ -226,6 +228,10 @@ const fn circle_intro() -> &'static str {
 
 const fn knot_intro() -> &'static str {
     r#"Keep it up! You still have everything you need to complete the next goal."#
+}
+
+const fn bend_intro() -> &'static str {
+    r#"You're totally crushing it! The next goal will be no trouble for you."#
 }
 
 const fn game_completed() -> &'static str {

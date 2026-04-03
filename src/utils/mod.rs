@@ -1,3 +1,4 @@
+pub mod matrix;
 pub mod point;
 pub mod sequence;
 pub mod sliding3;

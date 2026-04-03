@@ -26,7 +26,7 @@ pub fn create_goals_tab(
         ("How Does A Function Say Hello? (It Waves)", "wave.png"),
         ("The Circle of Life", "circle.png"),
         ("All Tied Up", "knot.png"),
-        ("Rock On!", "rock.png"),
+        ("Bent Out of Shape", "bend.png"),
     ];
 
     let mut checkboxes = Vec::with_capacity(goals.len());
