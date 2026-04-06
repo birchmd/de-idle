@@ -1,2 +1,5 @@
 [build]
 target = "www/index.html"
+public_url = "/de-idle/"
+dist = "docs"
+release = true
