@@ -80,7 +80,12 @@ fn create_resource_row(
     let cell: HtmlElement = cell.unchecked_into();
     cell.set_class_name("resourceaction");
     cell.style().set_property("text-align", "center")?;
-    let label = document.create_element("h3")?;
+    let element_kind = if resource.remove_label.is_empty() {
+        "h3"
+    } else {
+        "button"
+    };
+    let label = document.create_element(element_kind)?;
     label.set_text_content(Some(resource.remove_label));
     let description = document.create_element("p")?;
     description.set_text_content(Some(&resource.remove_description));
@@ -107,7 +112,12 @@ fn create_resource_row(
     let cell: HtmlElement = cell.unchecked_into();
     cell.set_class_name("resourceaction");
     cell.style().set_property("text-align", "center")?;
-    let label = document.create_element("h3")?;
+    let element_kind = if resource.add_label.is_empty() {
+        "h3"
+    } else {
+        "button"
+    };
+    let label = document.create_element(element_kind)?;
     label.set_text_content(Some(resource.add_label));
     let description = document.create_element("p")?;
     description.set_text_content(Some(&resource.add_description));

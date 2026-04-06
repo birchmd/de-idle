@@ -56,6 +56,11 @@ button {
   background-color: #ddd;
 }
 
+.resourceaction button {
+    line-height: 1.6;
+    font-size: 1.5rem;
+}
+
 .goal-image {
   width: 300px;
 }
