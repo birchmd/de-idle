@@ -110,7 +110,9 @@ impl PlotActor {
         if MAX_PLOT_HISTORY < self.pts.len() {
             self.pts.pop_front();
         }
-        if (self.goal_checker)(&self.pts) {
+        let goal_passed =
+            std::panic::catch_unwind(|| (self.goal_checker)(&self.pts)).unwrap_or(false);
+        if goal_passed {
             self.goal_notification.unbounded_send(()).ok();
             self.goal_checker = no_goal;
         }
