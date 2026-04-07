@@ -237,6 +237,46 @@ impl GameState {
         self.furnaces = Resource::zero();
         self.factories = Resource::zero();
     }
+
+    pub fn reset_wood(&mut self) {
+        self.wood = Resource::zero();
+    }
+
+    pub fn reset_gold(&mut self) {
+        self.gold = Resource::zero();
+    }
+
+    pub fn reset_energy(&mut self) {
+        self.energy = Resource::zero();
+    }
+
+    pub fn reset_lumberjacks(&mut self) {
+        self.lumberjacks = Resource::zero();
+    }
+
+    pub fn reset_miners(&mut self) {
+        self.miners = Resource::zero();
+    }
+
+    pub fn reset_recruiters(&mut self) {
+        self.recruiters = Resource::zero();
+    }
+
+    pub fn reset_monsters(&mut self) {
+        self.monsters = Resource::zero();
+    }
+
+    pub fn reset_banks(&mut self) {
+        self.banks = Resource::zero();
+    }
+
+    pub fn reset_furnaces(&mut self) {
+        self.furnaces = Resource::zero();
+    }
+
+    pub fn reset_factories(&mut self) {
+        self.factories = Resource::zero();
+    }
 }
 
 trait Producer<R>: Sized {

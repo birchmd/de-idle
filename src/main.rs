@@ -154,7 +154,7 @@ fn create_reset_button(
     tx: mpsc::UnboundedSender<Msg>,
 ) -> Result<(), JsValue> {
     let reset_button = ui::create_button(document, "Reset Resources", move |_| {
-        tx.unbounded_send(Msg::Reset).ok();
+        tx.unbounded_send(Msg::Reset(0)).ok();
     })?;
     reset_button.style().set_property("line-height", "1.6")?;
     reset_button.style().set_property("font-size", "1rem")?;

@@ -26,6 +26,10 @@ pub fn create_dashboard(
     tab_content.set_class_name("tabcontent");
 
     let table = document.create_element("table")?;
+    let table_ref: &HtmlElement = table.unchecked_ref();
+    table_ref.style().set_property("width", "100%")?;
+    table_ref.style().set_property("table-layout", "fixed")?;
+    table_ref.style().set_property("word-break", "break-word")?;
     tab_content.append_child(&table)?;
 
     let resources = [
@@ -58,6 +62,7 @@ struct ResourceRow {
     remove_fn: Box<dyn FnMut()>,
     remove_label: &'static str,
     remove_description: String,
+    reset_fn: Box<dyn FnMut()>,
     name: &'static str,
     add_fn: Box<dyn FnMut()>,
     add_label: &'static str,
@@ -71,6 +76,7 @@ fn create_resource_row(
 ) -> Result<(Element, HtmlElement), JsValue> {
     let row = document.create_element("tr")?;
     let row: HtmlElement = row.unchecked_into();
+    row.style().set_property("padding", "1.5rem 0px")?;
 
     // All table rows start off hidden by default.
     row.style().set_property("display", "none")?;
@@ -78,8 +84,11 @@ fn create_resource_row(
     // Remove side
     let cell = document.create_element("td")?;
     let cell: HtmlElement = cell.unchecked_into();
-    cell.set_class_name("resourceaction");
+    cell.set_class_name("resourceremove");
     cell.style().set_property("text-align", "center")?;
+    cell.style().set_property("width", "20%")?;
+    row.style()
+        .set_property("border-bottom", "1px solid #ccc")?;
     let element_kind = if resource.remove_label.is_empty() {
         "h3"
     } else {
@@ -89,16 +98,20 @@ fn create_resource_row(
     label.set_text_content(Some(resource.remove_label));
     let description = document.create_element("p")?;
     description.set_text_content(Some(&resource.remove_description));
+    let reset_button = document.create_element("button")?;
+    reset_button.set_text_content(Some(&format!("Reset {}", resource.name)));
     cell.append_child(&label)?;
     cell.append_child(&description)?;
+    cell.append_child(&reset_button)?;
     row.append_child(&cell)?;
-    set_onclick(&cell, resource.remove_fn)?;
+    set_onclick(label.unchecked_ref(), resource.remove_fn)?;
+    set_onclick(reset_button.unchecked_ref(), resource.reset_fn)?;
 
     // Name and amount
     let cell = document.create_element("td")?;
     let cell: HtmlElement = cell.unchecked_into();
     cell.style().set_property("text-align", "center")?;
-    cell.style().set_property("padding", "10px")?;
+    cell.style().set_property("width", "45%")?;
     let label = document.create_element("h2")?;
     label.set_text_content(Some(resource.name));
     let amount = document.create_element("p")?;
@@ -112,6 +125,7 @@ fn create_resource_row(
     let cell: HtmlElement = cell.unchecked_into();
     cell.set_class_name("resourceaction");
     cell.style().set_property("text-align", "center")?;
+    cell.style().set_property("width", "40%")?;
     let element_kind = if resource.add_label.is_empty() {
         "h3"
     } else {
@@ -132,10 +146,14 @@ fn create_resource_row(
 }
 
 fn wood_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
+    let local_tx = tx.clone();
     ResourceRow {
         remove_fn: Box::new(|| {}),
         remove_label: "",
         remove_description: String::new(),
+        reset_fn: Box::new(move || {
+            local_tx.unbounded_send(Msg::Reset(1)).ok();
+        }),
         name: "Wood",
         add_fn: Box::new(move || {
             tx.unbounded_send(Msg::Chop).ok();
@@ -146,10 +164,14 @@ fn wood_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
 }
 
 fn gold_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
+    let local_tx = tx.clone();
     ResourceRow {
         remove_fn: Box::new(|| {}),
         remove_label: "",
         remove_description: String::new(),
+        reset_fn: Box::new(move || {
+            local_tx.unbounded_send(Msg::Reset(2)).ok();
+        }),
         name: "Gold",
         add_fn: Box::new(move || {
             tx.unbounded_send(Msg::Sell).ok();
@@ -159,11 +181,15 @@ fn gold_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
     }
 }
 
-fn energy_resource(_tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
+fn energy_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
+    let local_tx = tx.clone();
     ResourceRow {
         remove_fn: Box::new(|| {}),
         remove_label: "",
         remove_description: String::new(),
+        reset_fn: Box::new(move || {
+            local_tx.unbounded_send(Msg::Reset(3)).ok();
+        }),
         name: "Energy",
         add_fn: Box::new(|| {}),
         add_label: "",
@@ -172,13 +198,17 @@ fn energy_resource(_tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
 }
 
 fn miner_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
-    let local_tx = tx.clone();
+    let remove_tx = tx.clone();
+    let reset_tx = tx.clone();
     ResourceRow {
         remove_fn: Box::new(move || {
-            local_tx.unbounded_send(Msg::FireMiner).ok();
+            remove_tx.unbounded_send(Msg::FireMiner).ok();
         }),
         remove_label: "Dismantle",
         remove_description: "Turn a miner bot into scrap.".into(),
+        reset_fn: Box::new(move || {
+            reset_tx.unbounded_send(Msg::Reset(4)).ok();
+        }),
         name: "Miners",
         add_fn: Box::new(move || {
             tx.unbounded_send(Msg::HireMiner).ok();
@@ -191,13 +221,17 @@ fn miner_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
 }
 
 fn lumberjack_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
-    let local_tx = tx.clone();
+    let remove_tx = tx.clone();
+    let reset_tx = tx.clone();
     ResourceRow {
         remove_fn: Box::new(move || {
-            local_tx.unbounded_send(Msg::FireLumberjack).ok();
+            remove_tx.unbounded_send(Msg::FireLumberjack).ok();
         }),
         remove_label: "Fire",
         remove_description: "Put a lumberjack out of a job.".into(),
+        reset_fn: Box::new(move || {
+            reset_tx.unbounded_send(Msg::Reset(5)).ok();
+        }),
         name: "Lumberjacks",
         add_fn: Box::new(move || {
             tx.unbounded_send(Msg::HireLumberjack).ok();
@@ -208,14 +242,18 @@ fn lumberjack_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
 }
 
 fn recruiter_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
-    let local_tx = tx.clone();
+    let remove_tx = tx.clone();
+    let reset_tx = tx.clone();
     ResourceRow {
         remove_fn: Box::new(move || {
-            local_tx.unbounded_send(Msg::FireRecruiter).ok();
+            remove_tx.unbounded_send(Msg::FireRecruiter).ok();
         }),
         remove_label: "Cancel",
         remove_description:
             "Stop running an ad; too many lumberjacks could put us out of business!".into(),
+        reset_fn: Box::new(move || {
+            reset_tx.unbounded_send(Msg::Reset(6)).ok();
+        }),
         name: "Advertisements",
         add_fn: Box::new(move || {
             tx.unbounded_send(Msg::HireRecruiter).ok();
@@ -228,14 +266,18 @@ fn recruiter_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
 }
 
 fn monster_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
-    let local_tx = tx.clone();
+    let remove_tx = tx.clone();
+    let reset_tx = tx.clone();
     ResourceRow {
         remove_fn: Box::new(move || {
-            local_tx.unbounded_send(Msg::FireMonster).ok();
+            remove_tx.unbounded_send(Msg::FireMonster).ok();
         }),
         remove_label: "Stake",
         remove_description: "Put a stake through the heart of a monster. Save the lumberjacks!"
             .into(),
+        reset_fn: Box::new(move || {
+            reset_tx.unbounded_send(Msg::Reset(7)).ok();
+        }),
         name: "Monsters",
         add_fn: Box::new(move || {
             tx.unbounded_send(Msg::HireMonster).ok();
@@ -248,11 +290,15 @@ fn monster_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
 }
 
 fn factory_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
-    let local_tx = tx.clone();
+    let remove_tx = tx.clone();
+    let reset_tx = tx.clone();
     ResourceRow {
-        remove_fn: Box::new(move || { local_tx.unbounded_send(Msg::DemolishFactory).ok();}),
+        remove_fn: Box::new(move || { remove_tx.unbounded_send(Msg::DemolishFactory).ok();}),
         remove_label: "Renovate",
         remove_description: "Times are changing; let's turn one of those old factories into a swanky waterfront apartment.".into(),
+        reset_fn: Box::new(move || {
+            reset_tx.unbounded_send(Msg::Reset(8)).ok();
+        }),
         name: "Factories",
         add_fn: Box::new(move || {tx.unbounded_send(Msg::BuildFactory).ok();}),
         add_label: "Build",
@@ -261,13 +307,17 @@ fn factory_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
 }
 
 fn furnace_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
-    let local_tx = tx.clone();
+    let remove_tx = tx.clone();
+    let reset_tx = tx.clone();
     ResourceRow {
         remove_fn: Box::new(move || {
-            local_tx.unbounded_send(Msg::DemolishFurnace).ok();
+            remove_tx.unbounded_send(Msg::DemolishFurnace).ok();
         }),
         remove_label: "Close",
         remove_description: "Close down one furnace. Haven't you heard of climate change?".into(),
+        reset_fn: Box::new(move || {
+            reset_tx.unbounded_send(Msg::Reset(9)).ok();
+        }),
         name: "Furnaces",
         add_fn: Box::new(move || {
             tx.unbounded_send(Msg::BuildFurnace).ok();
@@ -280,11 +330,15 @@ fn furnace_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
 }
 
 fn bank_resource(tx: mpsc::UnboundedSender<Msg>) -> ResourceRow {
-    let local_tx = tx.clone();
+    let remove_tx = tx.clone();
+    let reset_tx = tx.clone();
     ResourceRow {
-        remove_fn: Box::new(move || { local_tx.unbounded_send(Msg::DemolishBank).ok();}),
+        remove_fn: Box::new(move || { remove_tx.unbounded_send(Msg::DemolishBank).ok();}),
         remove_label: "Collapse",
         remove_description: "When the customers lose confidence in a bank and withdraw all their funds at once it is called a 'bank run.'".into(),
+        reset_fn: Box::new(move || {
+            reset_tx.unbounded_send(Msg::Reset(10)).ok();
+        }),
         name: "Banks",
         add_fn: Box::new(move || {tx.unbounded_send(Msg::BuildBank).ok();}),
         add_label: "Build",

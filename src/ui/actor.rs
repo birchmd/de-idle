@@ -26,7 +26,7 @@ pub enum Msg {
     SetXAxis(u8),
     SetYAxis(u8),
     TogglePause,
-    Reset,
+    Reset(u8),
 }
 
 pub struct Actor {
@@ -106,7 +106,7 @@ impl Actor {
             Msg::TogglePause => {
                 self.paused = !self.paused;
             }
-            Msg::Reset => self.state.reset(),
+            Msg::Reset(index) => reset_resource_by_index(&mut self.state, index),
         }
     }
 }
@@ -125,5 +125,21 @@ fn select_quantity_by_index(state: &GameState, index: u8) -> f64 {
         9 => state.furnaces_f64(),
         10 => state.banks_f64(),
         _ => 0.0,
+    }
+}
+
+fn reset_resource_by_index(state: &mut GameState, index: u8) {
+    match index {
+        1 => state.reset_wood(),
+        2 => state.reset_gold(),
+        3 => state.reset_energy(),
+        4 => state.reset_miners(),
+        5 => state.reset_lumberjacks(),
+        6 => state.reset_recruiters(),
+        7 => state.reset_monsters(),
+        8 => state.reset_factories(),
+        9 => state.reset_furnaces(),
+        10 => state.reset_banks(),
+        _ => state.reset(),
     }
 }
