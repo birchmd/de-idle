@@ -5,7 +5,7 @@ use {
     },
     futures_channel::mpsc,
     gloo_timers::callback::Interval,
-    wasm_bindgen::JsValue,
+    wasm_bindgen::{JsCast, JsValue},
     web_sys::{Document, HtmlElement},
 };
 
@@ -21,7 +21,20 @@ fn main() -> Result<(), JsValue> {
     let mut tabs = ui::tabs::TabsBuilder::new(&document)?;
 
     let (goal_tx, goal_rx) = mpsc::unbounded();
-    let (plot_actor, plot_tx) = PlotActor::create(&document, &body, goal_tx)?;
+
+    // `div` element to hold the page content; split into two parts: left and right,
+    // which will either be side-by-side or stacked vertically depending on the screen width.
+    let container: HtmlElement = document.create_element("div")?.unchecked_into();
+    container.set_class_name("container");
+
+    let right: HtmlElement = document.create_element("div")?.unchecked_into();
+    right.style().set_property("width", "800px")?;
+    let left: HtmlElement = document.create_element("div")?.unchecked_into();
+    left.style().set_property("width", "800px")?;
+    container.append_child(&left)?;
+    container.append_child(&right)?;
+
+    let (plot_actor, plot_tx) = PlotActor::create(&document, &left, goal_tx)?;
     let (tx, rx) = mpsc::unbounded();
     let dashboard = ui::dashboard::create_dashboard(&document, &mut tabs, tx.clone())?;
     let actor = Actor::create(rx, dashboard.amounts, plot_tx.clone());
@@ -39,11 +52,13 @@ fn main() -> Result<(), JsValue> {
         plot_tx.clone(),
     )?;
 
-    create_axis_selectors(&document, &body, plot_tx.clone(), tx.clone())?;
-    create_pause_button(&document, &body, tx.clone())?;
-    create_reset_button(&document, &body, tx.clone())?;
+    create_axis_selectors(&document, &left, plot_tx.clone(), tx.clone())?;
+    create_pause_button(&document, &left, tx.clone())?;
+    create_reset_button(&document, &left, tx.clone())?;
 
-    tabs.build(&body)?;
+    tabs.build(&right)?;
+
+    body.append_child(&container)?;
 
     // Start with the `Messages` tab selected.
     messages.click_header();

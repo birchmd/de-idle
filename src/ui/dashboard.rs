@@ -27,7 +27,7 @@ pub fn create_dashboard(
 
     let table = document.create_element("table")?;
     let table_ref: &HtmlElement = table.unchecked_ref();
-    table_ref.style().set_property("width", "100%")?;
+    table_ref.style().set_property("width", "800px")?;
     table_ref.style().set_property("table-layout", "fixed")?;
     table_ref.style().set_property("word-break", "break-word")?;
     tab_content.append_child(&table)?;
@@ -86,7 +86,7 @@ fn create_resource_row(
     let cell: HtmlElement = cell.unchecked_into();
     cell.set_class_name("resourceremove");
     cell.style().set_property("text-align", "center")?;
-    cell.style().set_property("width", "20%")?;
+    cell.style().set_property("width", "160px")?;
     row.style()
         .set_property("border-bottom", "1px solid #ccc")?;
     let element_kind = if resource.remove_label.is_empty() {
@@ -111,7 +111,7 @@ fn create_resource_row(
     let cell = document.create_element("td")?;
     let cell: HtmlElement = cell.unchecked_into();
     cell.style().set_property("text-align", "center")?;
-    cell.style().set_property("width", "45%")?;
+    cell.style().set_property("width", "360px")?;
     let label = document.create_element("h2")?;
     label.set_text_content(Some(resource.name));
     let amount = document.create_element("p")?;
@@ -125,7 +125,7 @@ fn create_resource_row(
     let cell: HtmlElement = cell.unchecked_into();
     cell.set_class_name("resourceaction");
     cell.style().set_property("text-align", "center")?;
-    cell.style().set_property("width", "40%")?;
+    cell.style().set_property("width", "320px")?;
     let element_kind = if resource.add_label.is_empty() {
         "h3"
     } else {
