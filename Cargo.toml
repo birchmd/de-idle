@@ -20,11 +20,15 @@ version = "0.3"
 features = [
   "console",
   "CssStyleDeclaration",
+  "CssStyleSheet",
   "Document",
   "Element",
   "HtmlCanvasElement",
   "HtmlElement",
   "HtmlSelectElement",
   "Node",
+  "Screen",
+  "StyleSheetList",
+  "StyleSheet",
   "Window",
 ]

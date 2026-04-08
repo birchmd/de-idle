@@ -19,6 +19,7 @@ pub struct Dashboard {
 
 pub fn create_dashboard(
     document: &Document,
+    width: i32,
     tabs: &mut TabsBuilder,
     tx: mpsc::UnboundedSender<Msg>,
 ) -> Result<Dashboard, JsValue> {
@@ -27,7 +28,8 @@ pub fn create_dashboard(
 
     let table = document.create_element("table")?;
     let table_ref: &HtmlElement = table.unchecked_ref();
-    table_ref.style().set_property("width", "800px")?;
+    let style_width = format!("{width}px");
+    table_ref.style().set_property("width", &style_width)?;
     table_ref.style().set_property("table-layout", "fixed")?;
     table_ref.style().set_property("word-break", "break-word")?;
     tab_content.append_child(&table)?;
@@ -48,7 +50,7 @@ pub fn create_dashboard(
     let mut rows = Vec::with_capacity(resources.len());
 
     for resource in resources {
-        let (amount, row) = create_resource_row(document, &table, resource)?;
+        let (amount, row) = create_resource_row(document, width, &table, resource)?;
         amounts.push(amount);
         rows.push(row);
     }
@@ -71,6 +73,7 @@ struct ResourceRow {
 
 fn create_resource_row(
     document: &Document,
+    width: i32,
     table: &Element,
     resource: ResourceRow,
 ) -> Result<(Element, HtmlElement), JsValue> {
@@ -86,7 +89,8 @@ fn create_resource_row(
     let cell: HtmlElement = cell.unchecked_into();
     cell.set_class_name("resourceremove");
     cell.style().set_property("text-align", "center")?;
-    cell.style().set_property("width", "160px")?;
+    let remove_style_width = format!("{}px", width / 5);
+    cell.style().set_property("width", &remove_style_width)?;
     row.style()
         .set_property("border-bottom", "1px solid #ccc")?;
     let element_kind = if resource.remove_label.is_empty() {
@@ -111,7 +115,8 @@ fn create_resource_row(
     let cell = document.create_element("td")?;
     let cell: HtmlElement = cell.unchecked_into();
     cell.style().set_property("text-align", "center")?;
-    cell.style().set_property("width", "360px")?;
+    let name_style_width = format!("{}px", width * 9 / 20);
+    cell.style().set_property("width", &name_style_width)?;
     let label = document.create_element("h2")?;
     label.set_text_content(Some(resource.name));
     let amount = document.create_element("p")?;
@@ -125,7 +130,8 @@ fn create_resource_row(
     let cell: HtmlElement = cell.unchecked_into();
     cell.set_class_name("resourceaction");
     cell.style().set_property("text-align", "center")?;
-    cell.style().set_property("width", "320px")?;
+    let add_style_width = format!("{}px", width * 2 / 5);
+    cell.style().set_property("width", &add_style_width)?;
     let element_kind = if resource.add_label.is_empty() {
         "h3"
     } else {

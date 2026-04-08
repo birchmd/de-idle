@@ -57,12 +57,13 @@ impl PlotActor {
     pub fn create(
         document: &Document,
         body: &HtmlElement,
+        width: u32,
         goal_notification: mpsc::UnboundedSender<()>,
     ) -> Result<(Self, mpsc::UnboundedSender<Msg>), JsValue> {
         let canvas = document.create_element("canvas")?;
         let canvas: HtmlCanvasElement = canvas.unchecked_into();
-        canvas.set_width(800);
-        canvas.set_height(800); // Set height = width for square chart area
+        canvas.set_width(width);
+        canvas.set_height(width); // Set height = width for square chart area
         body.append_child(&canvas)?;
 
         let backend = CanvasBackend::with_canvas_object(canvas)

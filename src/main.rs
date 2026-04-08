@@ -6,17 +6,54 @@ use {
     futures_channel::mpsc,
     gloo_timers::callback::Interval,
     wasm_bindgen::{JsCast, JsValue},
-    web_sys::{Document, HtmlElement},
+    web_sys::{CssStyleSheet, Document, HtmlElement},
 };
 
 mod game_state;
 mod ui;
 mod utils;
 
+// Size of the UI elements below the plot, in pixels.
+const PLOT_CONTROLS_HEIGHT: i32 = 100;
+
 fn main() -> Result<(), JsValue> {
     let window = web_sys::window().expect("no global `window` exists");
     let document = window.document().expect("should have a document on window");
     let body = document.body().expect("document should have a body");
+
+    let screen = window.screen()?;
+    let screen_width = screen.avail_width()?;
+    let screen_height = screen.avail_height()?;
+    let is_landscape = screen_height < screen_width;
+
+    let (plot_width, tabs_width) = if is_landscape {
+        let plot_width = ((screen_width / 2) - PLOT_CONTROLS_HEIGHT).clamp(300, 800);
+        let tabs_width = plot_width + (PLOT_CONTROLS_HEIGHT / 2);
+        (plot_width, tabs_width)
+    } else {
+        let plot_width = screen_width.clamp(300, 800);
+        (plot_width, plot_width)
+    };
+    let style_width = format!("{plot_width}px");
+    let css: Option<CssStyleSheet> = document.style_sheets().get(0).map(JsCast::unchecked_into);
+
+    if let Some(css) = css.as_ref()
+    {
+        if is_landscape {
+            // For wider screens the plot and tabs are side-by-side, so
+            // the total screen width is double the tabs width plus the 20px gap.
+            let mw = 2 * tabs_width + 20;
+            css.insert_rule(&format!("body {{ max-width: {mw}px; }}"))?;
+            css.insert_rule(&format!(".tab {{ width: {tabs_width}px; }}"))?;
+            css.insert_rule(&format!(".tabcontent {{ width: {tabs_width}px; height: {tabs_width}px; }}"))?;
+        } else {
+            // For narrower screens; have plot and tabs stacked vertically
+            css.insert_rule(".container { flex-direction: column; }")?;
+            let tabs_height = (screen_height - plot_width - PLOT_CONTROLS_HEIGHT).max(100);
+            css.insert_rule(&format!(".tab {{ width: {tabs_width}px; }}"))?;
+            css.insert_rule(&format!(".tabcontent {{ width: {tabs_width}px; height: {tabs_height}px; }}"))?;
+        }
+    }
 
     let mut tabs = ui::tabs::TabsBuilder::new(&document)?;
 
@@ -28,15 +65,16 @@ fn main() -> Result<(), JsValue> {
     container.set_class_name("container");
 
     let right: HtmlElement = document.create_element("div")?.unchecked_into();
-    right.style().set_property("width", "800px")?;
+    right.style().set_property("width", &style_width)?;
     let left: HtmlElement = document.create_element("div")?.unchecked_into();
-    left.style().set_property("width", "800px")?;
+    left.style().set_property("width", &style_width)?;
     container.append_child(&left)?;
     container.append_child(&right)?;
 
-    let (plot_actor, plot_tx) = PlotActor::create(&document, &left, goal_tx)?;
+    let (plot_actor, plot_tx) =
+        PlotActor::create(&document, &left, plot_width.unsigned_abs(), goal_tx)?;
     let (tx, rx) = mpsc::unbounded();
-    let dashboard = ui::dashboard::create_dashboard(&document, &mut tabs, tx.clone())?;
+    let dashboard = ui::dashboard::create_dashboard(&document, tabs_width, &mut tabs, tx.clone())?;
     let actor = Actor::create(rx, dashboard.amounts, plot_tx.clone());
     plot_actor.spawn();
     actor.spawn();

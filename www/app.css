@@ -7,7 +7,6 @@ body {
     color: #333;
     line-height: 1.6;
     margin: 1em auto;
-    max-width: 1620px;
 }
 
 button {
@@ -20,21 +19,11 @@ button {
   gap: 20px;
 }
 
-@media (max-width: 600px) {
-  .container {
-    flex-direction: column;
-  }
-  .tabcontent {
-    max-height: 450px;
-  }
-}
-
 /* Style the tab */
 .tab {
   overflow: hidden;
   border: 1px solid #ccc;
   background-color: #f1f1f1;
-  width: 820px;
 }
 
 /* Style the buttons that are used to open the tab content */
@@ -65,8 +54,6 @@ button {
   display: none;
   border: 1px solid #ccc;
   border-top: none;
-  width: 820px;
-  height: 800px;
   overflow-y: auto;
 }
 
