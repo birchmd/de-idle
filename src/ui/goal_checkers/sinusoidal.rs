@@ -134,7 +134,10 @@ pub fn bend_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
     let [slope_start, intercept_start] =
         matrix::multiply_col_vector(matrix::inverse_2x2([*x0, 1.0, *x1, 1.0]), [*y0, *y1]);
 
-    if slope_start > -0.01 {
+    if slope_start.is_nan()
+        || slope_start.is_infinite()
+        || !(-100_000.0..=-0.01).contains(&slope_start)
+    {
         return false;
     }
 
@@ -199,6 +202,10 @@ pub fn bend_goal_checker(pts: &VecDeque<(f64, f64)>) -> bool {
         ]),
         [*y1, *y2, *y3],
     );
+
+    if coefficients.iter().any(|x| x.is_nan() || x.is_infinite()) {
+        return false;
+    }
 
     let total_error: f64 = pts
         .iter()

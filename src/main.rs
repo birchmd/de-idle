@@ -37,21 +37,24 @@ fn main() -> Result<(), JsValue> {
     let style_width = format!("{plot_width}px");
     let css: Option<CssStyleSheet> = document.style_sheets().get(0).map(JsCast::unchecked_into);
 
-    if let Some(css) = css.as_ref()
-    {
+    if let Some(css) = css.as_ref() {
         if is_landscape {
             // For wider screens the plot and tabs are side-by-side, so
             // the total screen width is double the tabs width plus the 20px gap.
             let mw = 2 * tabs_width + 20;
             css.insert_rule(&format!("body {{ max-width: {mw}px; }}"))?;
             css.insert_rule(&format!(".tab {{ width: {tabs_width}px; }}"))?;
-            css.insert_rule(&format!(".tabcontent {{ width: {tabs_width}px; height: {tabs_width}px; }}"))?;
+            css.insert_rule(&format!(
+                ".tabcontent {{ width: {tabs_width}px; height: {tabs_width}px; }}"
+            ))?;
         } else {
             // For narrower screens; have plot and tabs stacked vertically
             css.insert_rule(".container { flex-direction: column; }")?;
             let tabs_height = (screen_height - plot_width - PLOT_CONTROLS_HEIGHT).max(100);
             css.insert_rule(&format!(".tab {{ width: {tabs_width}px; }}"))?;
-            css.insert_rule(&format!(".tabcontent {{ width: {tabs_width}px; height: {tabs_height}px; }}"))?;
+            css.insert_rule(&format!(
+                ".tabcontent {{ width: {tabs_width}px; height: {tabs_height}px; }}"
+            ))?;
         }
     }
 
