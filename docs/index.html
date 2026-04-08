@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width">
+        <title>DE-Idle</title>
+	<link rel="stylesheet" href="/de-idle/app-95adef8c3521bd01.css" integrity="sha384-FXC7Ic5XvRKK3bXIGmkCqG3+LpJVh7J2ObkhKVD2B28npL797am+ngxJpF5il5oD"/>
+	
+<script type="module">
+import init, * as bindings from '/de-idle/de-idle-85cfb344c33b069a.js';
+const wasm = await init({ module_or_path: '/de-idle/de-idle-85cfb344c33b069a_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <link rel="modulepreload" href="/de-idle/de-idle-85cfb344c33b069a.js" crossorigin="anonymous" integrity="sha384-ylJIynNid09f06Uf2xDw/zgFY+lBxIm8ZynyDsgK5VllB4+N5J9FKacVEZfw99NT"><link rel="preload" href="/de-idle/de-idle-85cfb344c33b069a_bg.wasm" crossorigin="anonymous" integrity="sha384-zBbj0KdcMJrHNnafB2OjlkJ7qDihPhxoVQgCVtkEum41uDaCvx0Xx4FlYEOVGl01" as="fetch" type="application/wasm"></head>
+    <body></body>
+</html>
