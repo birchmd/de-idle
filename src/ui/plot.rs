@@ -140,8 +140,8 @@ fn create_chart(
             (min_x, max_x, min_y, max_y)
         },
     );
-    let dx = (max_x.abs() / 100.0).max(0.01);
-    let dy = (max_y.abs() / 100.0).max(0.01);
+    let dx = (max_x.abs() / 100.0).clamp(0.01, 1.0);
+    let dy = (max_y.abs() / 100.0).clamp(0.01, 1.0);
     let mut chart = ChartBuilder::on(root)
         .x_label_area_size(30)
         .y_label_area_size(30)
